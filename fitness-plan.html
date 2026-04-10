@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arko's Half Marathon Transformation Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #222222;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --accent3: #47b8ff;
+    --text: #f0f0f0;
+    --muted: #666;
+    --phase1: #47b8ff;
+    --phase2: #b847ff;
+    --phase3: #ff6b35;
+    --phase4: #e8ff47;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    padding: 60px 40px 40px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(232,255,71,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 8vw, 96px);
+    line-height: 0.9;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+  }
+
+  .hero h1 span { color: var(--accent); }
+
+  .stats-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin-top: 32px;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: var(--text);
+  }
+
+  .stat-value.target { color: var(--accent); }
+
+  .arrow {
+    font-size: 24px;
+    color: var(--accent2);
+    align-self: center;
+    margin-top: 16px;
+  }
+
+  /* NAV */
+  .nav {
+    display: flex;
+    gap: 0;
+    padding: 0 40px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav::-webkit-scrollbar { display: none; }
+
+  .nav-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 16px 20px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* CONTENT */
+  .content {
+    padding: 40px;
+    max-width: 1100px;
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* PHASES OVERVIEW */
+  .phases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .phase-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid;
+    padding: 24px;
+    position: relative;
+    transition: transform 0.2s;
+    cursor: pointer;
+  }
+
+  .phase-card:hover { transform: translateY(-2px); }
+  .phase-card[data-phase="1"] { border-top-color: var(--phase1); }
+  .phase-card[data-phase="2"] { border-top-color: var(--phase2); }
+  .phase-card[data-phase="3"] { border-top-color: var(--phase3); }
+  .phase-card[data-phase="4"] { border-top-color: var(--phase4); }
+
+  .phase-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    line-height: 1;
+    opacity: 0.08;
+    position: absolute;
+    top: 8px;
+    right: 16px;
+  }
+
+  .phase-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .phase-card[data-phase="1"] .phase-tag { color: var(--phase1); }
+  .phase-card[data-phase="2"] .phase-tag { color: var(--phase2); }
+  .phase-card[data-phase="3"] .phase-tag { color: var(--phase3); }
+  .phase-card[data-phase="4"] .phase-tag { color: var(--phase4); }
+
+  .phase-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .phase-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .phase-meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .phase-meta-row strong { color: var(--text); }
+
+  .phase-unlock {
+    font-size: 12px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-left: 2px solid;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .phase-card[data-phase="1"] .phase-unlock { border-color: var(--phase1); }
+  .phase-card[data-phase="2"] .phase-unlock { border-color: var(--phase2); }
+  .phase-card[data-phase="3"] .phase-unlock { border-color: var(--phase3); }
+  .phase-card[data-phase="4"] .phase-unlock { border-color: var(--phase4); }
+
+  /* SECTION HEADERS */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 24px;
+    margin-top: 40px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-header:first-child { margin-top: 0; }
+
+  .section-header h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+  }
+
+  .section-header .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 3px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* WEEK GRID */
+  .week-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+
+  .week-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .week-btn:hover { color: var(--text); border-color: #444; }
+  .week-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold; }
+  .week-btn.phase1 { border-top-color: var(--phase1); }
+  .week-btn.phase2 { border-top-color: var(--phase2); }
+  .week-btn.phase3 { border-top-color: var(--phase3); }
+  .week-btn.phase4 { border-top-color: var(--phase4); }
+
+  .week-display {
+    display: none;
+  }
+
+  .week-display.active {
+    display: block;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .week-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .week-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 1px;
+  }
+
+  .week-focus {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 4px 12px;
+    border: 1px solid;
+    text-transform: uppercase;
+    color: var(--accent2);
+    border-color: var(--accent2);
+  }
+
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .day-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .day-type {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .day-type.run { color: var(--phase3); }
+  .day-type.strength { color: var(--phase1); }
+  .day-type.rest { color: var(--muted); }
+  .day-type.cross { color: var(--phase2); }
+  .day-type.long-run { color: var(--accent); }
+  .day-type.tempo { color: var(--accent2); }
+
+  .day-details { list-style: none; }
+
+  .day-details li {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .day-details li:last-child { border-bottom: none; }
+  .day-details li span { color: var(--text); font-weight: 500; text-align: right; font-size: 12px; }
+
+  .day-note {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: var(--surface2);
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--border);
+  }
+
+  /* NUTRITION */
+  .nutrition-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .macro-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    text-align: center;
+  }
+
+  .macro-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  .macro-unit {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+
+  .macro-label {
+    font-size: 14px;
+    color: var(--text);
+    margin-top: 4px;
+  }
+
+  .info-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .info-block h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .info-block ul {
+    list-style: none;
+  }
+
+  .info-block ul li {
+    font-size: 14px;
+    color: var(--muted);
+    padding: 5px 0;
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .info-block ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .info-block ul li strong { color: var(--text); }
+
+  /* TWO COL */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+  .info-block.accent2 { border-left-color: var(--accent2); }
+  .info-block.accent3 { border-left-color: var(--accent3); }
+  .info-block.phase2 { border-left-color: var(--phase2); }
+
+  /* MILESTONES */
+  .timeline {
+    position: relative;
+    padding-left: 32px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .milestone {
+    position: relative;
+    margin-bottom: 28px;
+  }
+
+  .milestone::before {
+    content: '';
+    position: absolute;
+    left: -28px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--bg);
+  }
+
+  .milestone-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .milestone-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .milestone-desc {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar-container {
+    margin: 8px 0 4px;
+  }
+  .progress-bar-bg {
+    background: var(--surface2);
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .callout {
+    background: rgba(232,255,71,0.05);
+    border: 1px solid rgba(232,255,71,0.15);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .callout strong { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-label">/ Personal Transformation Plan / April 2025 → December 2025 · Baseline Logged</div>
+  <h1>HALF<br>MARATHON<br><span>MODE</span></h1>
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-label">Start Weight</div>
+      <div class="stat-value">94 kg</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stat">
+      <div class="stat-label">Target Weight</div>
+      <div class="stat-value target">&lt;80 kg</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Start Waist</div>
+      <div class="stat-value">38"</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stat">
+      <div class="stat-label">Target Waist</div>
+      <div class="stat-value target">~32"</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Z2 Pace Now</div>
+      <div class="stat-value">10:30/km</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stat">
+      <div class="stat-label">Z2 Pace Target</div>
+      <div class="stat-value target">&lt;7:00/km</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Goal Event</div>
+      <div class="stat-value target">21.1 KM</div>
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="switchTab('overview')">Overview</button>
+  <button class="nav-btn" onclick="switchTab('weekly')">Week by Week</button>
+  <button class="nav-btn" onclick="switchTab('nutrition')">Nutrition</button>
+  <button class="nav-btn" onclick="switchTab('milestones')">Milestones</button>
+</div>
+
+<div class="content">
+
+  <!-- OVERVIEW TAB -->
+  <div id="tab-overview" class="tab-panel active">
+
+    <div class="callout">
+      <strong>Baseline logged (April 10):</strong> Your first Zone 2 run clocked 10:49–9:49/km across 3.7km with HR drifting 144→152 bpm as pace slowed — classic <em>cardiac drift</em> from an underdeveloped aerobic base. This is the exact problem Phase 1 fixes. Your Zone 2 pace is normal for your starting point. The plan is now calibrated to your actual numbers.
+    </div>
+
+    <div class="section-header">
+      <h2>The 4 Phases</h2>
+      <span class="badge">April → December</span>
+    </div>
+
+    <div class="phases-grid">
+      <div class="phase-card" data-phase="1" onclick="switchTab('weekly')">
+        <div class="phase-num">1</div>
+        <div class="phase-tag">Weeks 1–8 · April–May</div>
+        <div class="phase-title">AEROBIC BASE & FAT ADAPTATION</div>
+        <div class="phase-meta">
+          <div class="phase-meta-row">Duration <strong>8 weeks</strong></div>
+          <div class="phase-meta-row">Target Weight <strong>~88 kg</strong></div>
+          <div class="phase-meta-row">Weekly Run Volume <strong>20 → 35 km</strong></div>
+          <div class="phase-meta-row">Strength <strong>3x/week full body</strong></div>
+        </div>
+        <div class="phase-unlock">🔓 Unlock Phase 2 when: Zone 2 pace drops below 7:30/km at HR &lt;145 bpm</div>
+      </div>
+
+      <div class="phase-card" data-phase="2" onclick="switchTab('weekly')">
+        <div class="phase-num">2</div>
+        <div class="phase-tag">Weeks 9–16 · June–July</div>
+        <div class="phase-title">BUILD & BODY RECOMP</div>
+        <div class="phase-meta">
+          <div class="phase-meta-row">Duration <strong>8 weeks</strong></div>
+          <div class="phase-meta-row">Target Weight <strong>~84 kg</strong></div>
+          <div class="phase-meta-row">Weekly Run Volume <strong>35 → 50 km</strong></div>
+          <div class="phase-meta-row">Strength <strong>3x/week split</strong></div>
+        </div>
+        <div class="phase-unlock">🔓 Unlock Phase 3 when: Long run reaches 14km, Zone 2 pace sub 7:00/km</div>
+      </div>
+
+      <div class="phase-card" data-phase="3" onclick="switchTab('weekly')">
+        <div class="phase-num">3</div>
+        <div class="phase-tag">Weeks 17–24 · Aug–Sep</div>
+        <div class="phase-title">RACE SPECIFIC BUILD</div>
+        <div class="phase-meta">
+          <div class="phase-meta-row">Duration <strong>8 weeks</strong></div>
+          <div class="phase-meta-row">Target Weight <strong>~81 kg</strong></div>
+          <div class="phase-meta-row">Weekly Run Volume <strong>50 → 60 km</strong></div>
+          <div class="phase-meta-row">Strength <strong>2x/week maintenance</strong></div>
+        </div>
+        <div class="phase-unlock">🔓 Unlock Phase 4 when: Completed a 18km long run, feeling strong</div>
+      </div>
+
+      <div class="phase-card" data-phase="4" onclick="switchTab('weekly')">
+        <div class="phase-num">4</div>
+        <div class="phase-tag">Weeks 25–32 · Oct–Dec</div>
+        <div class="phase-title">PEAK & RACE READY</div>
+        <div class="phase-meta">
+          <div class="phase-meta-row">Duration <strong>8 weeks</strong></div>
+          <div class="phase-meta-row">Target Weight <strong>&lt;80 kg</strong></div>
+          <div class="phase-meta-row">Weekly Run Volume <strong>55–60 km (taper)</strong></div>
+          <div class="phase-meta-row">Strength <strong>1x/week light</strong></div>
+        </div>
+        <div class="phase-unlock">🏁 Race day: Half Marathon — sub 2:30 target pace</div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <h2>Running Zones Explained</h2>
+      <span class="badge">Your Blueprint</span>
+    </div>
+
+    <div class="two-col">
+      <div class="info-block">
+        <h3>Zone 2 — The Foundation</h3>
+        <ul>
+          <li>HR: <strong>130–145 bpm</strong> — stay under 145, walk if it spikes</li>
+          <li>Effort: <strong>Conversational</strong> — full sentences easily</li>
+          <li>Your baseline: <strong>~10:30/km at 144–152 bpm</strong> (logged April 10)</li>
+          <li>Phase 1 Gate target: <strong>under 7:30/km at ≤145 bpm</strong></li>
+          <li>Phase 2 Gate target: <strong>under 7:00/km at ≤145 bpm</strong></li>
+          <li>Key fix: <strong>Start first 500m extra slow</strong> — let HR settle under 140 before finding pace. Your drift shows you're starting too hot.</li>
+          <li>80% of all runs in Phase 1 are Zone 2 only</li>
+        </ul>
+      </div>
+      <div class="info-block accent2">
+        <h3>Zone 4 — The Race Zone</h3>
+        <ul>
+          <li>HR: <strong>165–180 bpm</strong></li>
+          <li>Effort: <strong>Can say 3–4 words max</strong></li>
+          <li>Use: <strong>Tempo runs & intervals only</strong></li>
+          <li>Max 20% of weekly volume in Phase 1–2</li>
+          <li>This is where you race at pace</li>
+          <li>Only introduced from Week 9 onwards</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <h2>Your Actual Baseline</h2>
+      <span class="badge">April 10 · First Run Logged</span>
+    </div>
+
+    <div class="info-block" style="border-left-color:var(--accent)">
+      <h3>Split Analysis — What Your Data Says</h3>
+      <ul>
+        <li>KM 1: <strong>9:49/km @ 144 bpm</strong> — started too fast, HR already at ceiling</li>
+        <li>KM 2: <strong>10:10/km @ 148 bpm</strong> — pace dropped, HR still climbing</li>
+        <li>KM 3: <strong>10:39/km @ 152 bpm</strong> — HR above Zone 2 ceiling despite slowing down</li>
+        <li>KM 4: <strong>10:59/km @ 146 bpm</strong> — HR came back down as pace slowed further</li>
+        <li>Pattern: <strong>Cardiac drift</strong> — heart works harder to maintain same effort as run continues. Aerobic engine is not yet efficient.</li>
+        <li>Fix: <strong>First 500m must feel embarrassingly slow.</strong> Let HR settle to ~135 before finding your cruise pace. This alone will stop the drift.</li>
+        <li>HR ceiling for all Phase 1 runs: <strong>145 bpm strict</strong>. Walk the moment it hits 148+.</li>
+      </ul>
+    </div>
+
+    <div class="two-col">
+      <div class="info-block accent2">
+        <h3>Realistic Phase 1 Pace Progression</h3>
+        <ul>
+          <li>Week 1–2: <strong>10:30–11:00/km</strong> is fine and expected</li>
+          <li>Week 3–4: <strong>10:00–10:30/km</strong> target</li>
+          <li>Week 5–6: <strong>9:30–10:00/km</strong> at same HR</li>
+          <li>Week 7–8: <strong>8:30–9:30/km</strong> — noticeable improvement</li>
+          <li>Phase Gate: <strong>sub 7:30/km at HR ≤145</strong></li>
+        </ul>
+      </div>
+      <div class="info-block accent3">
+        <h3>Week 1 Run Distances (Recalibrated)</h3>
+        <ul>
+          <li>Tue: <strong>3km</strong> — short, controlled, HR under 140</li>
+          <li>Thu: <strong>4km</strong> — slightly longer, same HR discipline</li>
+          <li>Sat: <strong>3km</strong> — shakeout, legs fresh for Sunday</li>
+          <li>Sun: <strong>6km long run</strong> — walk-run fine, just cover distance</li>
+          <li>Total Week 1: <strong>~16km</strong> including strength days</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <h2>Strength Training Philosophy</h2>
+      <span class="badge">Muscle definition + injury prevention</span>
+    </div>
+
+    <div class="two-col">
+      <div class="info-block accent3">
+        <h3>Phase 1–2 Focus (Full Body)</h3>
+        <ul>
+          <li><strong>Squats & Deadlifts</strong> — posterior chain for running power</li>
+          <li><strong>Push-ups / Chest Press</strong> — upper body baseline</li>
+          <li><strong>Rows & Pull-ups</strong> — back strength, posture</li>
+          <li><strong>Lunges & Step-ups</strong> — running specific legs</li>
+          <li><strong>Core work</strong> — planks, dead bugs, Russian twists daily</li>
+          <li>3 sets × 10–12 reps, progressive overload each week</li>
+        </ul>
+      </div>
+      <div class="info-block phase2">
+        <h3>Phase 3–4 Focus (Maintenance)</h3>
+        <ul>
+          <li>Running takes priority — volume of strength drops</li>
+          <li>Bodyweight + light weights to retain muscle</li>
+          <li><strong>Heavy on single-leg work</strong> — glute bridges, step-ups</li>
+          <li><strong>Injury prevention</strong> — calf raises, hip flexor work</li>
+          <li>Friday is always run/tempo — never strength on Friday</li>
+          <li>Saturday is always active recovery — never training</li>
+          <li><strong>Never strength train the day before a long run</strong> — Saturday is sacred rest</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- WEEKLY TAB -->
+  <div id="tab-weekly" class="tab-panel">
+
+    <div class="callout">
+      <strong>Weekly structure (all phases):</strong> Mon — Strength | Tue — Run | <strong>Wed — REST</strong> | Thu — Strength | Fri — Run/Tempo | <strong>Sat — Active Recovery</strong> | Sun — Long Run. Two rest/recovery days every single week. This is not optional — it's where adaptation happens.
+    </div>
+
+    <div class="section-header">
+      <h2>Select a Week</h2>
+    </div>
+
+    <div class="week-selector" id="weekSelector"></div>
+    <div id="weekContent"></div>
+
+  </div>
+
+  <!-- NUTRITION TAB -->
+  <div id="tab-nutrition" class="tab-panel">
+
+    <div class="callout">
+      <strong>The rule:</strong> You cannot outrun a bad diet — but you also can't fuel your training on nothing. This is a <strong>performance-first deficit</strong>. You eat enough to train hard, recover well, and lose fat consistently. No crash dieting.
+    </div>
+
+    <div class="section-header">
+      <h2>Daily Macros — Phase 1 & 2</h2>
+      <span class="badge">Approx 2000–2200 kcal</span>
+    </div>
+
+    <div class="nutrition-grid">
+      <div class="macro-card">
+        <div class="macro-value">180</div>
+        <div class="macro-unit">GRAMS / DAY</div>
+        <div class="macro-label">Protein</div>
+      </div>
+      <div class="macro-card">
+        <div class="macro-value">200</div>
+        <div class="macro-unit">GRAMS / DAY</div>
+        <div class="macro-label">Carbohydrates</div>
+      </div>
+      <div class="macro-card">
+        <div class="macro-value">65</div>
+        <div class="macro-unit">GRAMS / DAY</div>
+        <div class="macro-label">Healthy Fats</div>
+      </div>
+      <div class="macro-card">
+        <div class="macro-value">~500</div>
+        <div class="macro-unit">KCAL DEFICIT</div>
+        <div class="macro-label">From Maintenance</div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <h2>Eating Strategy</h2>
+    </div>
+
+    <div class="two-col">
+      <div class="info-block">
+        <h3>Pre-Run Nutrition</h3>
+        <ul>
+          <li><strong>Easy runs (&lt;45 min):</strong> Fasted or light snack — banana, black coffee</li>
+          <li><strong>Long runs (60+ min):</strong> Light meal 90 min before — oats, banana, peanut butter</li>
+          <li><strong>During long runs (&gt;90 min):</strong> 30–60g carbs/hour — dates, gels, raisins</li>
+          <li>Always hydrate 500ml 1hr before</li>
+        </ul>
+      </div>
+      <div class="info-block accent2">
+        <h3>Post-Run Recovery Window</h3>
+        <ul>
+          <li>Eat within <strong>45 minutes</strong> post-run</li>
+          <li>Protein + Carbs combo — 3:1 carb-to-protein ratio</li>
+          <li>Options: Eggs + rice, paneer + roti, whey + banana shake</li>
+          <li>Avoid high-fat in this window — slows absorption</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-block accent3">
+      <h3>Indian Meal Planning — What Works</h3>
+      <ul>
+        <li><strong>Breakfast:</strong> 4 eggs (2 whole + 2 whites) + 2 whole wheat rotis + black coffee</li>
+        <li><strong>Lunch:</strong> 200g paneer/chicken + 1 cup dal + 1 cup sabji + 2 rotis or 1 cup rice</li>
+        <li><strong>Pre-workout snack:</strong> Greek yogurt + banana OR handful of mixed nuts + dates</li>
+        <li><strong>Post-workout:</strong> Whey shake (30g protein) + 1 banana OR egg whites + quick carb</li>
+        <li><strong>Dinner:</strong> Large salad + 200g lean protein (chicken/fish/paneer) + vegetables</li>
+        <li><strong>Avoid:</strong> Maida, fried snacks, packaged food, excessive chai with sugar, alcohol on training days</li>
+        <li><strong>Cheat meal:</strong> 1x per week — not a cheat day. Controlled indulgence, not a binge.</li>
+      </ul>
+    </div>
+
+    <div class="section-header">
+      <h2>Supplements Worth Taking</h2>
+    </div>
+
+    <div class="info-block">
+      <h3>The Short List (Evidence-Based Only)</h3>
+      <ul>
+        <li><strong>Whey Protein:</strong> Only if you can't hit 180g protein from food. Not magic, just convenient.</li>
+        <li><strong>Creatine Monohydrate:</strong> 5g/day, every day. Retains muscle during fat loss. Cheap and proven.</li>
+        <li><strong>Vitamin D3 + K2:</strong> Most Indians are deficient. Supports muscle function and immunity.</li>
+        <li><strong>Magnesium Glycinate:</strong> 300mg at night. Aids sleep quality and muscle recovery.</li>
+        <li><strong>Electrolytes:</strong> On long run days — coconut water, ORS, or electrolyte tabs. Not during short runs.</li>
+        <li><strong>Skip:</strong> Fat burners, BCAAs (redundant with sufficient protein), expensive pre-workouts.</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- MILESTONES TAB -->
+  <div id="tab-milestones" class="tab-panel">
+
+    <div class="callout">
+      <strong>Use these as checkpoints.</strong> If you're not hitting a milestone, don't advance phases — extend the current one. Progress is more important than schedule. Missing a milestone by a week is fine. Missing it by three weeks means something needs adjusting.
+    </div>
+
+    <div class="section-header">
+      <h2>Progress Milestones</h2>
+    </div>
+
+    <div class="timeline">
+
+      <div class="milestone">
+        <div class="milestone-date">End of Week 2 — Late April</div>
+        <div class="milestone-title">First Check-In</div>
+        <div class="milestone-desc">Consistent 5x/week running. No pace targets — just no-drift runs. Cardiac drift (your baseline pattern) should be visibly reduced: HR should stay flatter across km 2–3 even if pace is similar. Weight: ~92–93 kg. Zone 2 pace should feel less miserable than Day 1.</div>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-date">End of Week 4 — Early May</div>
+        <div class="milestone-title">First Long Run: 10 km</div>
+        <div class="milestone-desc">Complete a 10km run at full Zone 2 — walk-run is fine. Zone 2 pace target: under 10:00/km (you started at 10:30 — this is a real, achievable improvement). HR should be staying flatter across the run with less drift than your baseline. Weight: ~91 kg.</div>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-date">End of Week 8 — Late May</div>
+        <div class="milestone-title">Phase 1 Gate: Aerobic Base Established</div>
+        <div class="milestone-desc">
+          ✅ Zone 2 pace under 7:30/km at HR ≤145<br>
+          ✅ Long run: 14km completed<br>
+          ✅ Weight: ~88 kg<br>
+          ✅ Running 5x per week consistently<br>
+          If all boxes are checked, you move to Phase 2.
+        </div>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-date">End of Week 12 — Late June</div>
+        <div class="milestone-title">First Tempo Run: 5km @ Race Pace</div>
+        <div class="milestone-desc">You've introduced tempo intervals. Run 5km at a pace that's uncomfortable but sustainable. This becomes your gauge for half marathon target pace. Weight: ~85–86 kg. Zone 2 should feel truly easy now.</div>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-date">End of Week 16 — Late July</div>
+        <div class="milestone-title">Phase 2 Gate: First Long Run 18km</div>
+        <div class="milestone-desc">
+          ✅ Long run: 18km completed<br>
+          ✅ Zone 2 pace: under 7:00/km<br>
+          ✅ Weight: ~83–84 kg<br>
+          ✅ Tempo runs feeling controlled<br>
+          You now know you can finish the race. Phase 3 is about doing it faster.
+        </div>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-date">End of Week 20 — Late August</div>
+        <div class="milestone-title">Peak Training Week</div>
+        <div class="milestone-desc">Highest volume week — ~60km total. Long run: 20km. This is the hardest week of the plan. After this you begin tapering the long runs while keeping intensity. Weight: ~81 kg. Visible muscle definition should be evident.</div>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-date">End of Week 24 — Late September</div>
+        <div class="milestone-title">Phase 3 Gate: Race Simulation</div>
+        <div class="milestone-desc">
+          ✅ Completed a simulated half marathon effort (run 19–20km at target pace)<br>
+          ✅ Weight: ~80 kg<br>
+          ✅ Consistent 5–6 runs per week for 8+ weeks<br>
+          ✅ No major injuries<br>
+          Phase 4 is just refinement. You're essentially ready.
+        </div>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-date">Weeks 25–28 — October</div>
+        <div class="milestone-title">Race Specific Sharpening</div>
+        <div class="milestone-desc">Volume drops, intensity sharpens. 10km race (if possible) as a tune-up. Fine-tune race day nutrition strategy. Dial in your target pace — aim for sub 2:30 finish (roughly 7:06/km). Weight: at or below 80 kg.</div>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-date">Weeks 29–32 — November-December</div>
+        <div class="milestone-title">Taper & Race Day</div>
+        <div class="milestone-desc">Volume drops 40% in the final 3 weeks. You will feel sluggish and doubt everything — this is normal. Trust the taper. Race week: easy runs only, sleep 8+ hours, carb load 2 days out, race day nutrition locked in.</div>
+      </div>
+
+      <div class="milestone">
+        <div class="milestone-date">December 2025</div>
+        <div class="milestone-title">🏁 HALF MARATHON — RACE DAY</div>
+        <div class="milestone-desc">
+          Target: <strong>Sub 2:30:00</strong> (aggressive but achievable given the training)<br>
+          Weight: <strong>Under 80 kg</strong><br>
+          Waist: <strong>~32–33"</strong><br>
+          Visible muscle definition ✅<br>
+          A completely different body and engine than where you started.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    if (b.getAttribute('onclick').includes(tab)) b.classList.add('active');
+  });
+}
+
+// WEEK DATA
+const weeks = [];
+
+// PHASE 1: Weeks 1-8
+const phase1Focus = [
+  "Foundation — Run Easy, Feel Awkward, That's Fine",
+  "Consistency Over Intensity",
+  "Zone 2 Lock-In — Every Run Easy",
+  "First Long Run Week — 10km Zone 2",
+  "Strength Foundation Deepening",
+  "Volume Bump — Running Gets Easier",
+  "12km Long Run — Progress is Real",
+  "Phase 1 Peak — 14km Long Run"
+];
+
+const phase1Days = [
+  // Week 1 — Mon: Strength | Tue: Run | Wed: REST | Thu: Strength | Fri: Run | Sat: REST | Sun: Long Run
+  [
+    {name:"Monday", type:"strength", typeLabel:"Full Body Strength", details:[["Squats","3×10"],["Push-ups","3×12"],["Dumbbell Row","3×10 each"],["Lunges","3×12 each"],["Plank","3×45s"],["Core circuit","10 min"]]},
+    {name:"Tuesday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","3 km"],["Target HR","130–140 bpm — stricter than you think"],["First 500m","Embarrassingly slow — let HR settle"],["Effort","Full sentences comfortable"]], note:"Your baseline showed HR at 144 in km 1. Start slower than feels right. HR under 140 for the first 500m, then find your cruise."},
+    {name:"Wednesday", type:"rest", typeLabel:"Full Rest Day", details:[["Do nothing","Seriously. Rest."],["Optional","20 min gentle walk only"],["Focus","Sleep 7–8 hrs, eat well"],["Why","Adaptation happens during rest, not training"]], note:"Rest days are not wasted days. Your aerobic base is being built right now while you sleep."},
+    {name:"Thursday", type:"strength", typeLabel:"Full Body Strength", details:[["Deadlifts","3×10"],["Chest Press","3×12"],["Pull-ups / Assisted","3×8"],["Glute Bridge","3×15"],["Russian Twists","3×20"],["Dead Bug","3×10"]]},
+    {name:"Friday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","4 km"],["Target HR","Under 145 strict"],["Walk trigger","HR hits 148 → walk until 138, then resume"],["Focus","Nasal breathing only"]], note:"Nasal breathing is your HR governor. If you can't breathe through your nose, you're going too fast. Use it religiously in Phase 1."},
+    {name:"Saturday", type:"rest", typeLabel:"Active Recovery", details:[["Foam roll","15–20 min — calves, quads, hamstrings"],["Stretch","Full body 20 min"],["Walk","30 min easy if you feel like it"],["Sleep","8+ hrs — long run tomorrow"]], note:"This is not a run day. Foam roll and stretch. Your Sunday long run will be noticeably better for this rest."},
+    {name:"Sunday", type:"long-run", typeLabel:"Long Run — Zone 2", details:[["Distance","6 km"],["Strategy","Walk-run is not just allowed — it's encouraged"],["HR cap","150 bpm absolute max"],["Pace","Your baseline is 10:30–11:00/km. That's your starting point."],["Fuelling","Water every 20 min"]], note:"6km because your baseline showed cardiac drift at 3.7km. Finishing 6km slow beats quitting 8km."}
+  ],
+  // Week 2 — Mon: Strength | Tue: Run | Wed: REST | Thu: Strength | Fri: Run | Sat: REST | Sun: Long Run
+  [
+    {name:"Monday", type:"strength", typeLabel:"Full Body Strength", details:[["Squats","3×12"],["Push-ups","3×15"],["Dumbbell Row","3×12 each"],["Reverse Lunges","3×12 each"],["Plank","3×50s"],["Core circuit","12 min"]]},
+    {name:"Tuesday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","4 km"],["Target HR","130–145 bpm"],["Cadence","Aim for ~160–170 spm"],["Drift check","Is HR stable across km 2–3? Flatter than Week 1?"]], note:"Compare km splits to your baseline. If HR is drifting less at the same pace, the aerobic base is adapting. That's the win."},
+    {name:"Wednesday", type:"rest", typeLabel:"Full Rest Day", details:[["Rest","No training"],["Optional","20 min walk + 15 min stretch"],["Eat","Hit your protein target — recovery needs fuel"],["Sleep","Prioritize 7–8 hours"]], note:"Two rest days per week is the rule in Phase 1. You're not losing fitness. You're building it."},
+    {name:"Thursday", type:"strength", typeLabel:"Full Body Strength", details:[["Romanian Deadlift","3×10"],["Incline Push-up","3×12"],["Pull-ups / Lat Pulldown","3×10"],["Single Leg Glute Bridge","3×12 each"],["Ab Wheel / Hollow Body","3×10"]]},
+    {name:"Friday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","5 km"],["Pace","Comfortable — HR guided"],["Focus","Relax shoulders, arms at 90°"],["Post","5 min walking cool-down + stretch"]]},
+    {name:"Saturday", type:"rest", typeLabel:"Active Recovery", details:[["Foam roll","Calves, IT band, quads — 20 min"],["Stretch","Hip flexors, hamstrings, glutes"],["Walk","30 min easy optional"],["Prep","Eat a banana + good carb dinner for Sunday"]], note:"Long run tomorrow. Eat well tonight. Sleep early. Lay out your kit."},
+    {name:"Sunday", type:"long-run", typeLabel:"Long Run — 7km Zone 2", details:[["Distance","7 km"],["HR cap","150 bpm"],["Nutrition","Banana 45 min before"],["Hydration","Water every 20 min"],["Recovery","10 min walk + stretch after"]], note:"+1km from last week. This is the progression. Same effort, more distance."}
+  ],
+  // Week 3 — Mon: Strength | Tue: Run | Wed: REST | Thu: Strength | Fri: Run | Sat: REST | Sun: Long Run
+  [
+    {name:"Monday", type:"strength", typeLabel:"Full Body Strength", details:[["Squats","4×10"],["Push-ups","3×15 or add weight"],["Bent Row","3×12"],["Walking Lunges","3×12 each"],["Plank","3×60s"]]},
+    {name:"Tuesday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","5 km"],["Focus","Control breathing, relax shoulders"],["HR","Stay under 145"],["Check","Should feel easier than Week 1 at same pace"]]},
+    {name:"Wednesday", type:"rest", typeLabel:"Full Rest Day", details:[["Rest","No running, no lifting"],["Mobility","20 min hip flexor + calf work if you want"],["Sleep","Your legs are adapting right now"]],note:"3 weeks in. Rest is still non-negotiable. The urge to do extra is normal. Resist it in Phase 1."},
+    {name:"Thursday", type:"strength", typeLabel:"Strength + Mobility Focus", details:[["Deadlifts","4×8 (add weight from last week)"],["Pull-ups","3×max"],["Hip Flexor Stretch","3×60s each"],["Foam Roll","15 min"],["Core","3 heavy sets"]]},
+    {name:"Friday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","5 km"],["Approach","First 1km extra slow — warm up properly"],["Last 0.5km","Pick up slightly only if HR stays under 145"]]},
+    {name:"Saturday", type:"rest", typeLabel:"Active Recovery", details:[["Walk","30–40 min easy"],["Stretch","Full body 20 min"],["Sleep","8+ hrs"],["Eat","Carb-rich dinner — rice, roti, oats"]], note:"Active recovery Saturday is a permanent fixture. Don't turn this into a training day."},
+    {name:"Sunday", type:"long-run", typeLabel:"Long Run — 8km Zone 2", details:[["Distance","8 km"],["Zone","Zone 2 the whole way"],["Fuel","Water + banana mid-run"],["Post","Protein + carb meal within 45 min"]], note:"+1km again. Steady progression. It doesn't matter how slow — you ran 8km."}
+  ],
+  // Week 4 — Mon: Strength | Tue: Run | Wed: REST | Thu: Strength | Fri: Run | Sat: REST | Sun: Long Run
+  [
+    {name:"Monday", type:"strength", typeLabel:"Full Body Strength", details:[["Back Squat","4×8 (progressive load)"],["Push-up Variations","4×12"],["Pull-ups","3×8"],["Lunges","3×12"],["Plank Circuit","4×45s"]]},
+    {name:"Tuesday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","5 km"],["HR","130–145 bpm"],["Add","4×100m strides at very end only"]]},
+    {name:"Wednesday", type:"rest", typeLabel:"Full Rest Day", details:[["Rest","Complete rest"],["Optional","20 min gentle walk"],["Eat","Hit protein — your muscles are repairing"]]},
+    {name:"Thursday", type:"strength", typeLabel:"Strength Focus", details:[["Deadlift","4×6 (heavy)"],["DB Row","4×10"],["Face Pulls + Band Work","3×15"],["Calf Raises","4×20"],["Core Strength","20 min"]]},
+    {name:"Friday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","6 km"],["Zone 2 strict","HR under 145"],["Post","Stretching 10 min"]]},
+    {name:"Saturday", type:"rest", typeLabel:"Active Recovery", details:[["Foam roll","20 min — focus on calves & quads"],["Stretch","Hip flexors, hamstrings"],["Walk","Optional 30 min"],["Carb load","Rice/roti dinner — long run tomorrow"]], note:"Longest run so far tomorrow. Rest properly today."},
+    {name:"Sunday", type:"long-run", typeLabel:"Long Run — 10km Zone 2", details:[["Distance","10 km — first double digits!"],["Zone","Zone 2 entire run — walk if HR spikes"],["Fuel","Carry water + 2 dates every 30 min"],["Recovery","Big protein meal + rest afternoon"]], note:"🏆 First 10km. This is a milestone. It doesn't matter how long it takes."}
+  ],
+  // Week 5 — DELOAD — Mon: REST | Tue: Run | Wed: Strength (light) | Thu: REST | Fri: Run | Sat: REST | Sun: Long Run (easy)
+  [
+    {name:"Monday", type:"rest", typeLabel:"Full Rest — Deload Week", details:[["Deload","Every 4 weeks, back off. This is Week 5."],["Purpose","Let the body consolidate gains from Weeks 1–4"],["Do","Eat well, sleep lots, foam roll"]], note:"Deload weeks are not optional. This is where your body catches up to the work you've been doing."},
+    {name:"Tuesday", type:"run", typeLabel:"Easy Zone 2 Run — Deload", details:[["Distance","4 km"],["Easy effort","HR under 140 — even easier than usual"],["Focus","Form only — posture, arm swing, cadence"]]},
+    {name:"Wednesday", type:"strength", typeLabel:"Full Body (Light Deload)", details:[["Squats","3×10 at 60% weight"],["Push-ups","3×10"],["Rows","3×10"],["Core","15 min"],["Mobility","20 min"]]},
+    {name:"Thursday", type:"rest", typeLabel:"Full Rest Day", details:[["Rest","Complete rest"],["Sleep","Prioritise 8+ hours"],["Walk","30 min gentle if restless"]]},
+    {name:"Friday", type:"run", typeLabel:"Easy Zone 2 Run — Deload", details:[["Distance","4 km"],["Very easy","HR under 135 if possible"],["Enjoy","Listen to a podcast, no watch-checking"]]},
+    {name:"Saturday", type:"rest", typeLabel:"Active Recovery", details:[["Foam roll","Full body 20 min"],["Stretch","20 min"],["Sleep","8+ hrs — long run tomorrow"]]},
+    {name:"Sunday", type:"long-run", typeLabel:"Long Run — 10km (Easy Repeat)", details:[["Distance","10 km — same as last week"],["Note","Deload — don't chase pace. This should feel easier."],["Fuel","Water + dates/banana"],["Enjoy","This is supposed to feel easy. That's the point."]]},
+  ],
+  // Week 6 — Mon: Strength | Tue: Run | Wed: REST | Thu: Strength | Fri: Run | Sat: REST | Sun: Long Run
+  [
+    {name:"Monday", type:"strength", typeLabel:"Full Body Strength — Reload", details:[["Back Squats","4×8 (add 2.5–5kg vs Week 4)"],["Weighted Push-ups","4×12"],["Pull-ups","4×8"],["Lunges","4×12 each"],["Heavy Core","20 min"]]},
+    {name:"Tuesday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","6 km"],["HR","145 max"],["Key check","Compare pace to Week 1. It should be noticeably faster at same HR."]]},
+    {name:"Wednesday", type:"rest", typeLabel:"Full Rest Day", details:[["Rest","No training"],["Mobility","15 min optional"],["Eat","Protein + carbs — reload week"]]},
+    {name:"Thursday", type:"strength", typeLabel:"Deadlift Focus + Upper", details:[["Deadlift","4×6 (PR attempt from Week 4)"],["Rows","4×10"],["Shoulder Press","3×10"],["Core","20 min heavy"],["Foam Roll","15 min"]]},
+    {name:"Friday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","6 km"],["Zone 2 enforced","Walk if HR spikes above 147"],["Post","Stretching + calf raises"]]},
+    {name:"Saturday", type:"rest", typeLabel:"Active Recovery", details:[["Foam roll","Calves, IT band, quads"],["Stretch","Full body"],["Walk","Optional 30 min"],["Sleep","8+ hrs"]], note:"Biggest long run so far tomorrow — 12km. Rest today."},
+    {name:"Sunday", type:"long-run", typeLabel:"Long Run — 12km", details:[["Distance","12 km"],["This is getting real","Longest run of the plan so far"],["Fuel","Every 30 min: water + 2 dates"],["Post-run","1hr rest, big meal, early sleep"]], note:"Start thinking about long run shoes if you haven't already — proper cushioning matters now."}
+  ],
+  // Week 7 — Mon: Strength | Tue: Run | Wed: REST | Thu: Strength | Fri: Run | Sat: REST | Sun: Long Run
+  [
+    {name:"Monday", type:"strength", typeLabel:"Full Body Strength Heavy", details:[["Squats","5×5 (heavy)"],["Bench Press / Push-up","4×10"],["Pull-ups","4×max"],["Romanian Deadlift","4×8"],["Core","25 min"]]},
+    {name:"Tuesday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","7 km"],["Pace check","What is your avg pace at HR 140–145?"],["Goal","Should be under 9:00/km now — big improvement from 10:30"]]},
+    {name:"Wednesday", type:"rest", typeLabel:"Full Rest Day", details:[["Rest","Complete rest"],["Optional","Gentle walk 20 min"],["Sleep","8 hrs"]]},
+    {name:"Thursday", type:"strength", typeLabel:"Upper Body + Core Heavy", details:[["Deadlift","4×5 heavy"],["Row variants","4×10"],["Overhead Press","3×10"],["Abs heavy","25 min"]]},
+    {name:"Friday", type:"run", typeLabel:"Zone 2 Run + Strides", details:[["Distance","7 km"],["Structure","6km easy + 4×100m strides"],["Strides","Controlled pick-up — not a sprint. Fast but relaxed."]]},
+    {name:"Saturday", type:"rest", typeLabel:"Active Recovery", details:[["Foam roll","45 min — full lower body focus"],["Stretch","Hip flexors + hamstrings"],["Sleep","8+ hours — 13km tomorrow"],["Carb load","Good carb dinner tonight"]], note:"13km tomorrow. Sleep well, eat well today. This is the last big effort before Phase Gate week."},
+    {name:"Sunday", type:"long-run", typeLabel:"Long Run — 13km", details:[["Distance","13 km — nearly a Phase Gate distance"],["Goal","Note your pace at comfortable HR"],["Fuel","Carry nutrition — fuel every 30 min"],["Post","Record avg pace + HR — compare to Week 1 baseline"]]},
+  ],
+  // Week 8 — Phase Gate — Mon: Strength | Tue: Pace Test Run | Wed: REST | Thu: Strength (light) | Fri: REST | Sat: Shakeout | Sun: PHASE GATE 14km
+  [
+    {name:"Monday", type:"strength", typeLabel:"Full Body Strength — Final Heavy", details:[["Squats","5×5"],["Deadlift","4×5"],["Pull-ups","4×max"],["Core","30 min"],["Note","Last heavy session before Phase Gate"]]},
+    {name:"Tuesday", type:"run", typeLabel:"Zone 2 Pace Test — 5km", details:[["Distance","5 km"],["This is a test","Run at HR 140–145 and record your avg pace"],["Baseline to beat","10:30/km (April 10 logged run)"],["Record","Time, avg HR, avg pace — this is your Phase 1 report card"]], note:"⚡ Zone 2 pace test. You started at ~10:30/km. If you're now under 8:30/km at the same HR, that's a massive aerobic adaptation in 8 weeks."},
+    {name:"Wednesday", type:"rest", typeLabel:"Full Rest Day", details:[["Rest","Complete rest"],["Eat","High carb day — rice, roti, banana, oats"],["Sleep","8+ hours"],["Prep","Mentally prepare for Sunday Phase Gate"]], note:"Two big days ahead — rest today completely."},
+    {name:"Thursday", type:"strength", typeLabel:"Light Strength — Prep Week", details:[["Squats","3×8 (moderate weight only)"],["Push/Pull","3×10 light"],["Core","20 min"],["No heavy lifts","Legs need to be fresh for Sunday"]]},
+    {name:"Friday", type:"rest", typeLabel:"Full Rest — Pre-Gate", details:[["Rest","No training at all"],["Eat","High carb dinner — carb load for 14km Sunday"],["Sleep","8+ hours"],["Hydrate","2–3L water throughout the day"]], note:"Carb load day. Eat rice, roti, banana, oats. No skimping. You need fuel for 14km."},
+    {name:"Saturday", type:"run", typeLabel:"Short Shakeout — 3km Only", details:[["Distance","3 km very easy"],["Purpose","Loosen legs — not a workout"],["HR","Under 130"],["Duration","~30 min max"]]},
+    {name:"Sunday", type:"long-run", typeLabel:"🔓 PHASE GATE — 14km Long Run", details:[["Distance","14 km — Zone 2 the whole way"],["Target HR","Under 150 the entire run"],["Fuel","Water every 20 min + 3 date/banana portions"],["Record","Avg pace, avg HR, total time"],["Gate check","Sub 7:30/km at ≤145 bpm = Phase 2 unlocked"]], note:"🔓 PHASE 1 GATE: Complete 14km Zone 2 AND Zone 2 pace under 7:30/km → you move to Phase 2. If not yet, one more week. No rush."}
+  ]
+];
+
+// PHASE 2: Weeks 9-16 (summarized structure)
+const phase2Days = [
+  // Week 9 — Mon: Strength | Tue: Run | Wed: REST | Thu: Strength | Fri: Tempo | Sat: REST | Sun: Long Run
+  [
+    {name:"Monday", type:"strength", typeLabel:"Upper Body Push", details:[["Bench Press / DB Press","4×10"],["Shoulder Press","3×10"],["Tricep Dips","3×12"],["Push-up Finisher","2×max"],["Core","20 min"]]},
+    {name:"Tuesday", type:"run", typeLabel:"Easy Zone 2 Run", details:[["Distance","8 km"],["Phase 2 begins","Slightly longer easy runs"],["HR","Under 145"]]},
+    {name:"Wednesday", type:"rest", typeLabel:"Full Rest Day", details:[["Rest","Complete rest"],["Optional","20 min walk + foam roll"],["Eat","Hit protein target"]]},
+    {name:"Thursday", type:"strength", typeLabel:"Lower Body + Core", details:[["Deadlift","4×6"],["Romanian DL","3×8"],["Hamstring Curl","3×12"],["Glute Bridge","4×15"],["Core","20 min"]]},
+    {name:"Friday", type:"tempo", typeLabel:"First Tempo Run", details:[["Structure","2km warm-up + 3km tempo + 1km cool-down"],["Tempo pace","Uncomfortable but controlled (Zone 4 edge)"],["HR","160–175 bpm during tempo"]], note:"⚡ First tempo run of the plan. Your body will hate this. That's fine. Only 3km tempo — don't push beyond that today."},
+    {name:"Saturday", type:"rest", typeLabel:"Active Recovery", details:[["Foam roll","Full body — you need it after tempo"],["Stretch","Focus on calves, hip flexors"],["Sleep","8+ hrs for long run"]]},
+    {name:"Sunday", type:"long-run", typeLabel:"Long Run — 15km", details:[["Distance","15 km — Zone 2"],["Nutrition","Fuel every 30 min"],["Target","Sub 8:00/km avg"]], note:"You're in Phase 2. Runs get longer, tempo introduced. The rest days still matter — don't skip them."}
+  ],
+  // Weeks 10-16 abbreviated
+  {week: 10, summary: "Structure: Mon/Thu Strength | Tue Easy 8km | Fri Tempo 4km | Wed+Sat REST | Sun Long Run 16km"},
+  {week: 11, summary: "Structure: Mon/Thu Strength | Tue Easy 8km | Fri Tempo 4km faster | Wed+Sat REST | Sun Long Run 16km"},
+  {week: 12, summary: "DELOAD — Mon REST | Tue Easy 5km | Wed Light Strength | Thu REST | Fri Easy 5km | Sat REST | Sun Long Run 14km (easy)"},
+  {week: 13, summary: "Structure: Mon/Thu Strength | Tue Easy 9km | Fri Tempo 5km | Wed+Sat REST | Sun Long Run 17km"},
+  {week: 14, summary: "Structure: Mon/Thu Strength | Tue Easy 9km | Fri Intervals 6×800m | Wed+Sat REST | Sun Long Run 17km"},
+  {week: 15, summary: "Structure: Mon/Thu Strength | Tue Easy 10km | Fri Tempo 6km | Wed+Sat REST | Sun Long Run 18km"},
+  {week: 16, summary: "⚡ PHASE GATE — Mon/Thu Light Strength | Tue Pace Test 5km | Fri Tempo 5km | Wed+Sat REST | Sun Long Run 18km — target sub 7:00/km Zone 2"}
+];
+
+// PHASE 3-4 weeks
+const phase34Weeks = [
+  {week: 17, summary: "Mon/Thu Strength (2×) | Tue Easy 10km | Fri Tempo 7km | Wed+Sat REST | Sun Long Run 19km | Focus: Peak volume begins"},
+  {week: 18, summary: "Mon/Thu Strength (2×) | Tue Easy 10km | Fri Intervals 8×800m | Wed+Sat REST | Sun Long Run 19km | Focus: Race pace sharpening"},
+  {week: 19, summary: "Mon/Thu Strength (2×) | Tue Easy 10km | Fri Tempo 7km | Wed+Sat REST | Sun Long Run 20km 🏆 First 20km!"},
+  {week: 20, summary: "⚡ PEAK WEEK — Mon/Thu Strength | Tue Easy 10km | Fri Tempo 8km | Wed+Sat REST | Sun Long Run 20km | ~55–60km total"},
+  {week: 21, summary: "DELOAD — Mon REST | Tue Easy 8km | Wed Light Strength | Thu REST | Fri Easy 8km | Sat REST | Sun Long Run 16km (easy)"},
+  {week: 22, summary: "Mon/Thu Strength (2×) | Tue Easy 10km | Fri Intervals 10×400m | Wed+Sat REST | Sun Long Run 19km"},
+  {week: 23, summary: "Mon/Thu Strength (2×) | Tue Easy 10km | Fri Tempo 8km at race pace | Wed+Sat REST | Sun Long Run 20km — Race simulation"},
+  {week: 24, summary: "⚡ PHASE GATE — Mon Light Strength | Tue Easy 8km | Wed REST | Thu Easy 6km | Fri REST | Sat Shakeout 3km | Sun 19–20km race simulation at target pace"},
+  {week: 25, summary: "Phase 4 begins. Mon Light Strength | Tue Easy 8km | Wed REST | Thu Easy 8km | Fri Tempo 6km | Sat REST | Sun Long Run 18km"},
+  {week: 26, summary: "Mon Light Strength | Tue Easy 8km | Wed REST | Thu Easy 6km | Fri 10km tune-up race (if available) | Sat REST | Sun Easy 16km"},
+  {week: 27, summary: "Mon Light Strength | Tue Easy 8km | Wed REST | Thu Easy 8km | Fri Tempo 6km | Sat REST | Sun Long Run 18km | Nail race nutrition"},
+  {week: 28, summary: "Mon Light Strength | Tue Easy 8km | Wed REST | Thu Intervals 6×1km race pace | Fri REST | Sat Shakeout 3km | Sun Long Run 16km"},
+  {week: 29, summary: "TAPER — Mon Light Strength | Tue Easy 7km | Wed REST | Thu Easy 7km | Fri Tempo 5km | Sat REST | Sun Long Run 14km | Vol -25%"},
+  {week: 30, summary: "TAPER — Mon Light Strength | Tue Easy 6km | Wed REST | Thu Easy 6km | Fri Tempo 4km | Sat REST | Sun Long Run 12km | Vol -40%"},
+  {week: 31, summary: "TAPER — Mon Easy 5km | Tue REST | Wed Easy 5km | Thu REST | Fri Easy 3km | Sat REST | Sun Easy 10km | Carb load Fri/Sat"},
+  {week: 32, summary: "🏁 RACE WEEK — Mon Easy 3km | Tue REST | Wed Easy 3km | Thu REST | Fri REST + carb load | Sat Shakeout 2km | RACE DAY — YOU'VE MADE IT"}
+];
+
+function buildWeekSelector() {
+  const sel = document.getElementById('weekSelector');
+  for (let w = 1; w <= 32; w++) {
+    let phase = w <= 8 ? 1 : w <= 16 ? 2 : w <= 24 ? 3 : 4;
+    const btn = document.createElement('button');
+    btn.className = `week-btn phase${phase}`;
+    btn.textContent = `W${w}`;
+    btn.onclick = () => showWeek(w);
+    btn.id = `weekbtn-${w}`;
+    sel.appendChild(btn);
+  }
+}
+
+function showWeek(w) {
+  document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`weekbtn-${w}`).classList.add('active');
+  document.querySelectorAll('.week-display').forEach(d => d.classList.remove('active'));
+
+  let html = '';
+  let phase = w <= 8 ? 1 : w <= 16 ? 2 : w <= 24 ? 3 : 4;
+  const phaseColors = ['', 'var(--phase1)', 'var(--phase2)', 'var(--phase3)', 'var(--phase4)'];
+
+  if (w <= 8) {
+    const wData = phase1Days[w - 1];
+    const focus = phase1Focus[w - 1];
+    html += `<div class="week-header">
+      <div class="week-title">WEEK ${w}</div>
+      <div class="week-focus" style="color:${phaseColors[phase]};border-color:${phaseColors[phase]}">Phase ${phase}</div>
+    </div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:20px;">${focus}</div>
+    <div class="days-grid">`;
+    wData.forEach(day => {
+      html += `<div class="day-card">
+        <div class="day-name">${day.name}</div>
+        <div class="day-type ${day.type}">${day.typeLabel}</div>
+        <ul class="day-details">`;
+      day.details.forEach(([label, val]) => {
+        html += `<li>${label} <span>${val}</span></li>`;
+      });
+      html += `</ul>`;
+      if (day.note) html += `<div class="day-note">${day.note}</div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+  } else if (w === 9) {
+    const wData = phase2Days[0];
+    html += `<div class="week-header">
+      <div class="week-title">WEEK 9</div>
+      <div class="week-focus" style="color:${phaseColors[2]};border-color:${phaseColors[2]}">Phase 2 — Build</div>
+    </div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:20px;">Tempo runs introduced. Runs get longer. Strength splits into push/pull/legs. Pace is improving.</div>
+    <div class="days-grid">`;
+    wData.forEach(day => {
+      html += `<div class="day-card">
+        <div class="day-name">${day.name}</div>
+        <div class="day-type ${day.type}">${day.typeLabel}</div>
+        <ul class="day-details">`;
+      day.details.forEach(([label, val]) => {
+        html += `<li>${label} <span>${val}</span></li>`;
+      });
+      html += `</ul>`;
+      if (day.note) html += `<div class="day-note">${day.note}</div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+  } else if (w >= 10 && w <= 16) {
+    const wData = phase2Days[w - 9];
+    html += `<div class="week-header">
+      <div class="week-title">WEEK ${w}</div>
+      <div class="week-focus" style="color:${phaseColors[2]};border-color:${phaseColors[2]}">Phase 2</div>
+    </div>
+    <div class="info-block" style="margin-top:0;border-left-color:${phaseColors[2]}">
+      <h3>Weekly Blueprint</h3>
+      <p style="font-size:14px;color:var(--muted);line-height:1.7">${wData.summary}</p>
+      <div style="margin-top:16px;font-size:13px;color:var(--muted)">
+        <strong style="color:var(--text)">Structure:</strong> Mon/Wed/Fri — Strength | Tue/Thu/Sat — Run | Sun — Long Run<br>
+        <strong style="color:var(--text)">Zone 2 rule:</strong> All easy runs HR 130–145. If it spikes above 150, walk.<br>
+        <strong style="color:var(--text)">Strength:</strong> Push/Pull/Legs split — no longer full body. Each session ~45–60 min.<br>
+        <strong style="color:var(--text)">Weight target:</strong> ~${88 - Math.round((w - 8) * 0.5)} kg by end of this week
+      </div>
+    </div>`;
+  } else {
+    const all = phase34Weeks;
+    const wData = all[w - 17];
+    html += `<div class="week-header">
+      <div class="week-title">WEEK ${w}</div>
+      <div class="week-focus" style="color:${phaseColors[phase]};border-color:${phaseColors[phase]}">Phase ${phase}</div>
+    </div>
+    <div class="info-block" style="margin-top:0;border-left-color:${phaseColors[phase]}">
+      <h3>Weekly Blueprint</h3>
+      <p style="font-size:14px;color:var(--muted);line-height:1.7">${wData.summary}</p>
+      <div style="margin-top:16px;font-size:13px;color:var(--muted)">
+        <strong style="color:var(--text)">Structure:</strong> Phase 3: 2× strength, 5 runs | Phase 4: 1× strength, 5 runs<br>
+        <strong style="color:var(--text)">Zone 2 rule:</strong> All easy runs remain conversational HR guided<br>
+        <strong style="color:var(--text)">Strength:</strong> Maintenance only — single leg, core, injury prevention<br>
+        <strong style="color:var(--text)">Key:</strong> Never skip easy days. Recovery is where fitness is built.
+      </div>
+    </div>`;
+  }
+
+  const container = document.getElementById('weekContent');
+  let div = document.getElementById(`week-${w}`);
+  if (!div) {
+    div = document.createElement('div');
+    div.className = 'week-display';
+    div.id = `week-${w}`;
+    container.appendChild(div);
+  }
+  div.innerHTML = html;
+  div.classList.add('active');
+}
+
+buildWeekSelector();
+showWeek(1);
+</script>
+</body>
+</html>

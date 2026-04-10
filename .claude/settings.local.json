@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import bcrypt; h = bcrypt.hashpw\\(b'testpass', bcrypt.gensalt\\(\\)\\).decode\\(\\); print\\(h\\); print\\('Verify:', bcrypt.checkpw\\(b'testpass', h.encode\\(\\)\\)\\)\")",
+      "Bash(pip install:*)",
+      "Bash(python -m pytest tests/ -v --tb=short)",
+      "Bash(python -m pytest tests/test_auth.py::TestLoginEndpoint::test_login_success -v --tb=long -s)",
+      "Bash(python -c ':*)",
+      "Bash(docker exec:*)",
+      "Bash(docker cp:*)"
+    ]
+  }
+}
