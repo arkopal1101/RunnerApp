@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from .database import engine, SessionLocal
 from .models import Base, User
-from .routes import auth, checkin, weekly, progress
+from .routes import auth, checkin, weekly, progress, today
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -30,6 +30,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(checkin.router, prefix="/api/checkin", tags=["checkin"])
 app.include_router(weekly.router, prefix="/api/log", tags=["weekly"])
 app.include_router(progress.router, prefix="/api", tags=["progress"])
+app.include_router(today.router, prefix="/api", tags=["today"])
 
 
 def _make_hash(password: str) -> str:
