@@ -7,14 +7,14 @@
   --accent2: #ff6b35;
   --accent3: #47b8ff;
   --text: #f0f0f0;
-  --muted: #666;
+  --muted: #888;
   --phase1: #47b8ff;
   --phase2: #b847ff;
   --phase3: #ff6b35;
   --phase4: #e8ff47;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   background: var(--bg);
@@ -23,6 +23,7 @@ body {
   font-size: 15px;
   line-height: 1.6;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -31,19 +32,29 @@ body {
 
 button { cursor: pointer; }
 
-/* Layout utilities */
+/* ── Focus states ── */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Layout utilities ── */
 .page-pad {
   padding: 40px;
   width: 100%;
+  max-width: 1200px;
 }
 
 .two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 40px;
+  gap: 32px;
 }
 
-/* App nav */
+/* ── App navigation ── */
 .app-nav {
   display: flex;
   align-items: center;
@@ -52,6 +63,9 @@ button { cursor: pointer; }
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   min-height: 48px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .nav-tabs {
@@ -64,21 +78,76 @@ button { cursor: pointer; }
 
 .nav-tabs::-webkit-scrollbar { display: none; }
 
-/* Mobile */
-@media (max-width: 640px) {
+.nav-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 14px 18px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.nav-tab:hover {
+  color: var(--text);
+}
+
+.nav-tab--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.nav-logout {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  padding: 5px 12px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.nav-logout:hover {
+  border-color: var(--accent2);
+  color: var(--accent2);
+}
+
+/* ── Tab content ── */
+.tab-content {
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Plan-specific overrides (keeps PlanViewer full-width) ── */
+.plan-hero {
+  position: relative;
+  padding: 60px 40px 40px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
   .page-pad {
-    padding: 16px;
+    padding: 20px 16px;
   }
 
   .two-col {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 20px;
   }
 
   .app-nav {
     padding: 0 12px;
-    flex-wrap: wrap;
-    gap: 4px;
+  }
+
+  .nav-tab {
+    padding: 12px 12px;
+    font-size: 12px;
   }
 
   .plan-hero {
@@ -92,4 +161,25 @@ button { cursor: pointer; }
   .plan-content {
     padding: 16px !important;
   }
+}
+
+@media (max-width: 480px) {
+  .nav-tab {
+    padding: 12px 10px;
+    font-size: 11px;
+  }
+
+  .page-pad {
+    padding: 16px 12px;
+  }
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tab-content > * {
+  animation: fadeIn 0.15s ease;
 }
