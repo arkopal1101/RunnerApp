@@ -103,11 +103,12 @@ export function getCTALabel(dayType, nextAction) {
     case 'run':
     case 'long-run':
     case 'tempo':
-      return 'Log Today\'s Run'
+    case 'intervals':
+      return "Log Today's Run"
     case 'strength':
-      return 'Mark Strength Complete'
+      return 'Log Workout'
     case 'rest':
-      return 'Log Recovery'
+      return 'Rested Today'
     default:
       return 'Log Today'
   }
@@ -115,8 +116,29 @@ export function getCTALabel(dayType, nextAction) {
 
 export function getCTATab(dayType, nextAction) {
   if (nextAction === 'weekly_checkin') return 'weekly'
-  if (dayType === 'run' || dayType === 'long-run' || dayType === 'tempo') return 'checkin'
+  if (dayType === 'strength') return 'workout'
+  if (dayType === 'rest') return 'today'  // handled inline on Today page
   return 'checkin'
+}
+
+// Rotating lighthearted messages for rest/recovery days. Pick one based on
+// week number so the same day shows the same message on refresh.
+export const REST_DAY_MESSAGES = [
+  "Today's job: do absolutely nothing. Expert-level difficulty.",
+  "Sofa. Snacks. Smugness. That's the workout.",
+  "The best athletes schedule rest. You are now, officially, one of them.",
+  "Your muscles are holding a team meeting. Don't interrupt.",
+  "Active recovery: walking to the fridge counts if it's uphill.",
+  "Nap hard. Hydrate harder. Gains happen in your sleep.",
+  "Congrats — today's medal is for restraint.",
+  "Rest is a skill. You're practicing. Don't skip practice.",
+  "Your legs called. They said please, for the love of god, no.",
+  "Foam roll, stretch, sleep. Boring. Effective. Do it.",
+]
+
+export function restDayMessage(week, dayOfWeek) {
+  const idx = ((week - 1) * 7 + dayOfWeek) % REST_DAY_MESSAGES.length
+  return REST_DAY_MESSAGES[idx]
 }
 
 export const DAY_TYPE_COLORS = {

@@ -1,6 +1,29 @@
 import os
 from pathlib import Path
 
+# Load .env from the project root BEFORE any other import that reads env vars.
+# Notepad on Windows saves files as UTF-16 LE by default — detect BOM and pick
+# the right encoding so we don't crash on user-authored .env files.
+# Falls through silently if python-dotenv isn't installed (e.g. in CI).
+try:
+    from dotenv import load_dotenv
+    _env_path = Path(__file__).parent.parent / ".env"
+    if _env_path.exists():
+        with open(_env_path, "rb") as _f:
+            _head = _f.read(4)
+        if _head.startswith(b"\xff\xfe") or _head.startswith(b"\xfe\xff"):
+            _encoding = "utf-16"
+        elif _head.startswith(b"\xef\xbb\xbf"):
+            _encoding = "utf-8-sig"
+        else:
+            _encoding = "utf-8"
+        load_dotenv(_env_path, encoding=_encoding)
+        print(f"[runner] Loaded env from {_env_path} (encoding={_encoding})")
+except ImportError:
+    pass
+except Exception as _e:
+    print(f"[runner] Failed to load .env: {_e}")
+
 import bcrypt as _bcrypt
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,12 +31,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from .database import engine, SessionLocal
+from .database import engine, SessionLocal, ensure_columns
 from .models import Base, User
-from .routes import auth, checkin, weekly, progress, today
+from .routes import auth, checkin, weekly, progress, today, plan, coach, day_log, baseline
 
-# Create tables
+# Create tables + apply any missing column migrations.
 Base.metadata.create_all(bind=engine)
+ensure_columns()
 
 app = FastAPI(title="Runner API", docs_url="/api/docs")
 
@@ -31,6 +55,10 @@ app.include_router(checkin.router, prefix="/api/checkin", tags=["checkin"])
 app.include_router(weekly.router, prefix="/api/log", tags=["weekly"])
 app.include_router(progress.router, prefix="/api", tags=["progress"])
 app.include_router(today.router, prefix="/api", tags=["today"])
+app.include_router(plan.router, prefix="/api/plan", tags=["plan"])
+app.include_router(coach.router, prefix="/api/coach", tags=["coach"])
+app.include_router(day_log.router, prefix="/api/day-log", tags=["day-log"])
+app.include_router(baseline.router, prefix="/api/baseline", tags=["baseline"])
 
 
 def _make_hash(password: str) -> str:

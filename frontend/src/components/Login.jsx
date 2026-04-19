@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { apiUrl } from '../utils/api'
 
 export default function Login({ onLogin }) {
   const [password, setPassword] = useState('')
@@ -13,7 +14,7 @@ export default function Login({ onLogin }) {
       const form = new URLSearchParams()
       form.append('username', 'arko')
       form.append('password', password)
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: form.toString(),
@@ -54,7 +55,7 @@ export default function Login({ onLogin }) {
 
         <h1 style={{
           fontFamily: "'Bebas Neue', sans-serif",
-          fontSize: 72,
+          fontSize: 'clamp(48px, 14vw, 72px)',
           lineHeight: 0.9,
           letterSpacing: 2,
           marginBottom: 40,

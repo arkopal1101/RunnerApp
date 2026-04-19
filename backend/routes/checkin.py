@@ -12,6 +12,7 @@ from ..database import get_db
 from ..models import DailyCheckin, User
 from ..parser import parse_workout_screenshot
 from .auth import get_current_user
+from .day_log import upsert_day_log
 
 router = APIRouter()
 
@@ -157,6 +158,15 @@ async def daily_checkin(
     db.add(checkin)
     db.commit()
     db.refresh(checkin)
+
+    # Auto-mark this day as completed so the Plan viewer shows a ✓ badge.
+    try:
+        upsert_day_log(
+            db, current_user.id, week_num, d.weekday(),
+            kind="run", log_date=today_str, checkin_id=checkin.id,
+        )
+    except Exception:
+        pass
 
     return {
         **checkin_to_dict(checkin),

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import WeeklyLog, User
+from ..services.adjuster import run_adjuster
 from .auth import get_current_user
 
 router = APIRouter()
@@ -123,6 +124,12 @@ def create_weekly_log(
         .first()
     )
     prev_weight = prev.weight_kg if prev else START_WEIGHT_KG
+    # Re-evaluate dynamic plan adjustments after the new weekly data point.
+    # Safe no-op when no LLM is configured.
+    try:
+        run_adjuster(db, current_user)
+    except Exception:
+        pass
     return log_to_dict(log, prev_weight)
 
 
@@ -163,6 +170,11 @@ def update_weekly_log(
         .first()
     )
     prev_weight = prev.weight_kg if prev else START_WEIGHT_KG
+    # Re-run adjuster on PUT updates too.
+    try:
+        run_adjuster(db, current_user)
+    except Exception:
+        pass
     return log_to_dict(log, prev_weight)
 
 

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { apiUrl } from '../utils/api'
 
 /* ─── CSS-in-JS helpers ─── */
 const css = {
@@ -112,131 +113,6 @@ const css = {
 
 const PHASE_COLORS = { 1: 'var(--phase1)', 2: 'var(--phase2)', 3: 'var(--phase3)', 4: 'var(--phase4)' }
 
-/* ─── Data ─── */
-const phase1Focus = [
-  "Foundation — Run Easy, Feel Awkward, That's Fine",
-  "Consistency Over Intensity",
-  "Zone 2 Lock-In — Every Run Easy",
-  "First Long Run Week — 10km Zone 2",
-  "Strength Foundation Deepening",
-  "Volume Bump — Running Gets Easier",
-  "12km Long Run — Progress is Real",
-  "Phase 1 Peak — 14km Long Run",
-]
-
-const phase1Days = [
-  [
-    { name: "Monday", type: "strength", typeLabel: "Full Body Strength", details: [["Squats", "3×10"], ["Push-ups", "3×12"], ["Dumbbell Row", "3×10 each"], ["Lunges", "3×12 each"], ["Plank", "3×45s"], ["Core circuit", "10 min"]] },
-    { name: "Tuesday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "3 km"], ["Target HR", "130–140 bpm — stricter than you think"], ["First 500m", "Embarrassingly slow — let HR settle"], ["Effort", "Full sentences comfortable"]], note: "Your baseline showed HR at 144 in km 1. Start slower than feels right. HR under 140 for the first 500m, then find your cruise." },
-    { name: "Wednesday", type: "rest", typeLabel: "Full Rest Day", details: [["Do nothing", "Seriously. Rest."], ["Optional", "20 min gentle walk only"], ["Focus", "Sleep 7–8 hrs, eat well"], ["Why", "Adaptation happens during rest, not training"]], note: "Rest days are not wasted days. Your aerobic base is being built right now while you sleep." },
-    { name: "Thursday", type: "strength", typeLabel: "Full Body Strength", details: [["Deadlifts", "3×10"], ["Chest Press", "3×12"], ["Pull-ups / Assisted", "3×8"], ["Glute Bridge", "3×15"], ["Russian Twists", "3×20"], ["Dead Bug", "3×10"]] },
-    { name: "Friday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "4 km"], ["Target HR", "Under 145 strict"], ["Walk trigger", "HR hits 148 → walk until 138, then resume"], ["Focus", "Nasal breathing only"]], note: "Nasal breathing is your HR governor. If you can't breathe through your nose, you're going too fast. Use it religiously in Phase 1." },
-    { name: "Saturday", type: "rest", typeLabel: "Active Recovery", details: [["Foam roll", "15–20 min — calves, quads, hamstrings"], ["Stretch", "Full body 20 min"], ["Walk", "30 min easy if you feel like it"], ["Sleep", "8+ hrs — long run tomorrow"]], note: "This is not a run day. Foam roll and stretch. Your Sunday long run will be noticeably better for this rest." },
-    { name: "Sunday", type: "long-run", typeLabel: "Long Run — Zone 2", details: [["Distance", "6 km"], ["Strategy", "Walk-run is not just allowed — it's encouraged"], ["HR cap", "150 bpm absolute max"], ["Pace", "Your baseline is 10:30–11:00/km. That's your starting point."], ["Fuelling", "Water every 20 min"]], note: "6km because your baseline showed cardiac drift at 3.7km. Finishing 6km slow beats quitting 8km." },
-  ],
-  [
-    { name: "Monday", type: "strength", typeLabel: "Full Body Strength", details: [["Squats", "3×12"], ["Push-ups", "3×15"], ["Dumbbell Row", "3×12 each"], ["Reverse Lunges", "3×12 each"], ["Plank", "3×50s"], ["Core circuit", "12 min"]] },
-    { name: "Tuesday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "4 km"], ["Target HR", "130–145 bpm"], ["Cadence", "Aim for ~160–170 spm"], ["Drift check", "Is HR stable across km 2–3? Flatter than Week 1?"]], note: "Compare km splits to your baseline. If HR is drifting less at the same pace, the aerobic base is adapting. That's the win." },
-    { name: "Wednesday", type: "rest", typeLabel: "Full Rest Day", details: [["Rest", "No training"], ["Optional", "20 min walk + 15 min stretch"], ["Eat", "Hit your protein target — recovery needs fuel"], ["Sleep", "Prioritize 7–8 hours"]], note: "Two rest days per week is the rule in Phase 1. You're not losing fitness. You're building it." },
-    { name: "Thursday", type: "strength", typeLabel: "Full Body Strength", details: [["Romanian Deadlift", "3×10"], ["Incline Push-up", "3×12"], ["Pull-ups / Lat Pulldown", "3×10"], ["Single Leg Glute Bridge", "3×12 each"], ["Ab Wheel / Hollow Body", "3×10"]] },
-    { name: "Friday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "5 km"], ["Pace", "Comfortable — HR guided"], ["Focus", "Relax shoulders, arms at 90°"], ["Post", "5 min walking cool-down + stretch"]] },
-    { name: "Saturday", type: "rest", typeLabel: "Active Recovery", details: [["Foam roll", "Calves, IT band, quads — 20 min"], ["Stretch", "Hip flexors, hamstrings, glutes"], ["Walk", "30 min easy optional"], ["Prep", "Eat a banana + good carb dinner for Sunday"]], note: "Long run tomorrow. Eat well tonight. Sleep early. Lay out your kit." },
-    { name: "Sunday", type: "long-run", typeLabel: "Long Run — 7km Zone 2", details: [["Distance", "7 km"], ["HR cap", "150 bpm"], ["Nutrition", "Banana 45 min before"], ["Hydration", "Water every 20 min"], ["Recovery", "10 min walk + stretch after"]], note: "+1km from last week. This is the progression. Same effort, more distance." },
-  ],
-  [
-    { name: "Monday", type: "strength", typeLabel: "Full Body Strength", details: [["Squats", "4×10"], ["Push-ups", "3×15 or add weight"], ["Bent Row", "3×12"], ["Walking Lunges", "3×12 each"], ["Plank", "3×60s"]] },
-    { name: "Tuesday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "5 km"], ["Focus", "Control breathing, relax shoulders"], ["HR", "Stay under 145"], ["Check", "Should feel easier than Week 1 at same pace"]] },
-    { name: "Wednesday", type: "rest", typeLabel: "Full Rest Day", details: [["Rest", "No running, no lifting"], ["Mobility", "20 min hip flexor + calf work if you want"], ["Sleep", "Your legs are adapting right now"]], note: "3 weeks in. Rest is still non-negotiable. The urge to do extra is normal. Resist it in Phase 1." },
-    { name: "Thursday", type: "strength", typeLabel: "Strength + Mobility Focus", details: [["Deadlifts", "4×8 (add weight from last week)"], ["Pull-ups", "3×max"], ["Hip Flexor Stretch", "3×60s each"], ["Foam Roll", "15 min"], ["Core", "3 heavy sets"]] },
-    { name: "Friday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "5 km"], ["Approach", "First 1km extra slow — warm up properly"], ["Last 0.5km", "Pick up slightly only if HR stays under 145"]] },
-    { name: "Saturday", type: "rest", typeLabel: "Active Recovery", details: [["Walk", "30–40 min easy"], ["Stretch", "Full body 20 min"], ["Sleep", "8+ hrs"], ["Eat", "Carb-rich dinner — rice, roti, oats"]], note: "Active recovery Saturday is a permanent fixture. Don't turn this into a training day." },
-    { name: "Sunday", type: "long-run", typeLabel: "Long Run — 8km Zone 2", details: [["Distance", "8 km"], ["Zone", "Zone 2 the whole way"], ["Fuel", "Water + banana mid-run"], ["Post", "Protein + carb meal within 45 min"]], note: "+1km again. Steady progression. It doesn't matter how slow — you ran 8km." },
-  ],
-  [
-    { name: "Monday", type: "strength", typeLabel: "Full Body Strength", details: [["Back Squat", "4×8 (progressive load)"], ["Push-up Variations", "4×12"], ["Pull-ups", "3×8"], ["Lunges", "3×12"], ["Plank Circuit", "4×45s"]] },
-    { name: "Tuesday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "5 km"], ["HR", "130–145 bpm"], ["Add", "4×100m strides at very end only"]] },
-    { name: "Wednesday", type: "rest", typeLabel: "Full Rest Day", details: [["Rest", "Complete rest"], ["Optional", "20 min gentle walk"], ["Eat", "Hit protein — your muscles are repairing"]] },
-    { name: "Thursday", type: "strength", typeLabel: "Strength Focus", details: [["Deadlift", "4×6 (heavy)"], ["DB Row", "4×10"], ["Face Pulls + Band Work", "3×15"], ["Calf Raises", "4×20"], ["Core Strength", "20 min"]] },
-    { name: "Friday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "6 km"], ["Zone 2 strict", "HR under 145"], ["Post", "Stretching 10 min"]] },
-    { name: "Saturday", type: "rest", typeLabel: "Active Recovery", details: [["Foam roll", "20 min — focus on calves & quads"], ["Stretch", "Hip flexors, hamstrings"], ["Walk", "Optional 30 min"], ["Carb load", "Rice/roti dinner — long run tomorrow"]], note: "Longest run so far tomorrow. Rest properly today." },
-    { name: "Sunday", type: "long-run", typeLabel: "Long Run — 10km Zone 2", details: [["Distance", "10 km — first double digits!"], ["Zone", "Zone 2 entire run — walk if HR spikes"], ["Fuel", "Carry water + 2 dates every 30 min"], ["Recovery", "Big protein meal + rest afternoon"]], note: "🏆 First 10km. This is a milestone. It doesn't matter how long it takes." },
-  ],
-  [
-    { name: "Monday", type: "rest", typeLabel: "Full Rest — Deload Week", details: [["Deload", "Every 4 weeks, back off. This is Week 5."], ["Purpose", "Let the body consolidate gains from Weeks 1–4"], ["Do", "Eat well, sleep lots, foam roll"]], note: "Deload weeks are not optional. This is where your body catches up to the work you've been doing." },
-    { name: "Tuesday", type: "run", typeLabel: "Easy Zone 2 Run — Deload", details: [["Distance", "4 km"], ["Easy effort", "HR under 140 — even easier than usual"], ["Focus", "Form only — posture, arm swing, cadence"]] },
-    { name: "Wednesday", type: "strength", typeLabel: "Full Body (Light Deload)", details: [["Squats", "3×10 at 60% weight"], ["Push-ups", "3×10"], ["Rows", "3×10"], ["Core", "15 min"], ["Mobility", "20 min"]] },
-    { name: "Thursday", type: "rest", typeLabel: "Full Rest Day", details: [["Rest", "Complete rest"], ["Sleep", "Prioritise 8+ hours"], ["Walk", "30 min gentle if restless"]] },
-    { name: "Friday", type: "run", typeLabel: "Easy Zone 2 Run — Deload", details: [["Distance", "4 km"], ["Very easy", "HR under 135 if possible"], ["Enjoy", "Listen to a podcast, no watch-checking"]] },
-    { name: "Saturday", type: "rest", typeLabel: "Active Recovery", details: [["Foam roll", "Full body 20 min"], ["Stretch", "20 min"], ["Sleep", "8+ hrs — long run tomorrow"]] },
-    { name: "Sunday", type: "long-run", typeLabel: "Long Run — 10km (Easy Repeat)", details: [["Distance", "10 km — same as last week"], ["Note", "Deload — don't chase pace. This should feel easier."], ["Fuel", "Water + dates/banana"], ["Enjoy", "This is supposed to feel easy. That's the point."]] },
-  ],
-  [
-    { name: "Monday", type: "strength", typeLabel: "Full Body Strength — Reload", details: [["Back Squats", "4×8 (add 2.5–5kg vs Week 4)"], ["Weighted Push-ups", "4×12"], ["Pull-ups", "4×8"], ["Lunges", "4×12 each"], ["Heavy Core", "20 min"]] },
-    { name: "Tuesday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "6 km"], ["HR", "145 max"], ["Key check", "Compare pace to Week 1. It should be noticeably faster at same HR."]] },
-    { name: "Wednesday", type: "rest", typeLabel: "Full Rest Day", details: [["Rest", "No training"], ["Mobility", "15 min optional"], ["Eat", "Protein + carbs — reload week"]] },
-    { name: "Thursday", type: "strength", typeLabel: "Deadlift Focus + Upper", details: [["Deadlift", "4×6 (PR attempt from Week 4)"], ["Rows", "4×10"], ["Shoulder Press", "3×10"], ["Core", "20 min heavy"], ["Foam Roll", "15 min"]] },
-    { name: "Friday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "6 km"], ["Zone 2 enforced", "Walk if HR spikes above 147"], ["Post", "Stretching + calf raises"]] },
-    { name: "Saturday", type: "rest", typeLabel: "Active Recovery", details: [["Foam roll", "Calves, IT band, quads"], ["Stretch", "Full body"], ["Walk", "Optional 30 min"], ["Sleep", "8+ hrs"]], note: "Biggest long run so far tomorrow — 12km. Rest today." },
-    { name: "Sunday", type: "long-run", typeLabel: "Long Run — 12km", details: [["Distance", "12 km"], ["This is getting real", "Longest run of the plan so far"], ["Fuel", "Every 30 min: water + 2 dates"], ["Post-run", "1hr rest, big meal, early sleep"]], note: "Start thinking about long run shoes if you haven't already — proper cushioning matters now." },
-  ],
-  [
-    { name: "Monday", type: "strength", typeLabel: "Full Body Strength Heavy", details: [["Squats", "5×5 (heavy)"], ["Bench Press / Push-up", "4×10"], ["Pull-ups", "4×max"], ["Romanian Deadlift", "4×8"], ["Core", "25 min"]] },
-    { name: "Tuesday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "7 km"], ["Pace check", "What is your avg pace at HR 140–145?"], ["Goal", "Should be under 9:00/km now — big improvement from 10:30"]] },
-    { name: "Wednesday", type: "rest", typeLabel: "Full Rest Day", details: [["Rest", "Complete rest"], ["Optional", "Gentle walk 20 min"], ["Sleep", "8 hrs"]] },
-    { name: "Thursday", type: "strength", typeLabel: "Upper Body + Core Heavy", details: [["Deadlift", "4×5 heavy"], ["Row variants", "4×10"], ["Overhead Press", "3×10"], ["Abs heavy", "25 min"]] },
-    { name: "Friday", type: "run", typeLabel: "Zone 2 Run + Strides", details: [["Distance", "7 km"], ["Structure", "6km easy + 4×100m strides"], ["Strides", "Controlled pick-up — not a sprint. Fast but relaxed."]] },
-    { name: "Saturday", type: "rest", typeLabel: "Active Recovery", details: [["Foam roll", "45 min — full lower body focus"], ["Stretch", "Hip flexors + hamstrings"], ["Sleep", "8+ hours — 13km tomorrow"], ["Carb load", "Good carb dinner tonight"]], note: "13km tomorrow. Sleep well, eat well today. This is the last big effort before Phase Gate week." },
-    { name: "Sunday", type: "long-run", typeLabel: "Long Run — 13km", details: [["Distance", "13 km — nearly a Phase Gate distance"], ["Goal", "Note your pace at comfortable HR"], ["Fuel", "Carry nutrition — fuel every 30 min"], ["Post", "Record avg pace + HR — compare to Week 1 baseline"]] },
-  ],
-  [
-    { name: "Monday", type: "strength", typeLabel: "Full Body Strength — Final Heavy", details: [["Squats", "5×5"], ["Deadlift", "4×5"], ["Pull-ups", "4×max"], ["Core", "30 min"], ["Note", "Last heavy session before Phase Gate"]] },
-    { name: "Tuesday", type: "run", typeLabel: "Zone 2 Pace Test — 5km", details: [["Distance", "5 km"], ["This is a test", "Run at HR 140–145 and record your avg pace"], ["Baseline to beat", "10:30/km (April 10 logged run)"], ["Record", "Time, avg HR, avg pace — this is your Phase 1 report card"]], note: "⚡ Zone 2 pace test. You started at ~10:30/km. If you're now under 8:30/km at the same HR, that's a massive aerobic adaptation in 8 weeks." },
-    { name: "Wednesday", type: "rest", typeLabel: "Full Rest Day", details: [["Rest", "Complete rest"], ["Eat", "High carb day — rice, roti, banana, oats"], ["Sleep", "8+ hours"], ["Prep", "Mentally prepare for Sunday Phase Gate"]], note: "Two big days ahead — rest today completely." },
-    { name: "Thursday", type: "strength", typeLabel: "Light Strength — Prep Week", details: [["Squats", "3×8 (moderate weight only)"], ["Push/Pull", "3×10 light"], ["Core", "20 min"], ["No heavy lifts", "Legs need to be fresh for Sunday"]] },
-    { name: "Friday", type: "rest", typeLabel: "Full Rest — Pre-Gate", details: [["Rest", "No training at all"], ["Eat", "High carb dinner — carb load for 14km Sunday"], ["Sleep", "8+ hours"], ["Hydrate", "2–3L water throughout the day"]], note: "Carb load day. Eat rice, roti, banana, oats. No skimping. You need fuel for 14km." },
-    { name: "Saturday", type: "run", typeLabel: "Short Shakeout — 3km Only", details: [["Distance", "3 km very easy"], ["Purpose", "Loosen legs — not a workout"], ["HR", "Under 130"], ["Duration", "~30 min max"]] },
-    { name: "Sunday", type: "long-run", typeLabel: "🔓 PHASE GATE — 14km Long Run", details: [["Distance", "14 km — Zone 2 the whole way"], ["Target HR", "Under 150 the entire run"], ["Fuel", "Water every 20 min + 3 date/banana portions"], ["Record", "Avg pace, avg HR, total time"], ["Gate check", "Sub 7:30/km at ≤145 bpm = Phase 2 unlocked"]], note: "🔓 PHASE 1 GATE: Complete 14km Zone 2 AND Zone 2 pace under 7:30/km → you move to Phase 2. If not yet, one more week. No rush." },
-  ],
-]
-
-const phase2Week9Days = [
-  { name: "Monday", type: "strength", typeLabel: "Upper Body Push", details: [["Bench Press / DB Press", "4×10"], ["Shoulder Press", "3×10"], ["Tricep Dips", "3×12"], ["Push-up Finisher", "2×max"], ["Core", "20 min"]] },
-  { name: "Tuesday", type: "run", typeLabel: "Easy Zone 2 Run", details: [["Distance", "8 km"], ["Phase 2 begins", "Slightly longer easy runs"], ["HR", "Under 145"]] },
-  { name: "Wednesday", type: "rest", typeLabel: "Full Rest Day", details: [["Rest", "Complete rest"], ["Optional", "20 min walk + foam roll"], ["Eat", "Hit protein target"]] },
-  { name: "Thursday", type: "strength", typeLabel: "Lower Body + Core", details: [["Deadlift", "4×6"], ["Romanian DL", "3×8"], ["Hamstring Curl", "3×12"], ["Glute Bridge", "4×15"], ["Core", "20 min"]] },
-  { name: "Friday", type: "tempo", typeLabel: "First Tempo Run", details: [["Structure", "2km warm-up + 3km tempo + 1km cool-down"], ["Tempo pace", "Uncomfortable but controlled (Zone 4 edge)"], ["HR", "160–175 bpm during tempo"]], note: "⚡ First tempo run of the plan. Your body will hate this. That's fine. Only 3km tempo — don't push beyond that today." },
-  { name: "Saturday", type: "rest", typeLabel: "Active Recovery", details: [["Foam roll", "Full body — you need it after tempo"], ["Stretch", "Focus on calves, hip flexors"], ["Sleep", "8+ hrs for long run"]] },
-  { name: "Sunday", type: "long-run", typeLabel: "Long Run — 15km", details: [["Distance", "15 km — Zone 2"], ["Nutrition", "Fuel every 30 min"], ["Target", "Sub 8:00/km avg"]], note: "You're in Phase 2. Runs get longer, tempo introduced. The rest days still matter — don't skip them." },
-]
-
-const phase2Summaries = {
-  10: "Structure: Mon/Thu Strength | Tue Easy 8km | Fri Tempo 4km | Wed+Sat REST | Sun Long Run 16km",
-  11: "Structure: Mon/Thu Strength | Tue Easy 8km | Fri Tempo 4km faster | Wed+Sat REST | Sun Long Run 16km",
-  12: "DELOAD — Mon REST | Tue Easy 5km | Wed Light Strength | Thu REST | Fri Easy 5km | Sat REST | Sun Long Run 14km (easy)",
-  13: "Structure: Mon/Thu Strength | Tue Easy 9km | Fri Tempo 5km | Wed+Sat REST | Sun Long Run 17km",
-  14: "Structure: Mon/Thu Strength | Tue Easy 9km | Fri Intervals 6×800m | Wed+Sat REST | Sun Long Run 17km",
-  15: "Structure: Mon/Thu Strength | Tue Easy 10km | Fri Tempo 6km | Wed+Sat REST | Sun Long Run 18km",
-  16: "⚡ PHASE GATE — Mon/Thu Light Strength | Tue Pace Test 5km | Fri Tempo 5km | Wed+Sat REST | Sun Long Run 18km — target sub 7:00/km Zone 2",
-}
-
-const phase34Summaries = {
-  17: "Mon/Thu Strength (2×) | Tue Easy 10km | Fri Tempo 7km | Wed+Sat REST | Sun Long Run 19km | Focus: Peak volume begins",
-  18: "Mon/Thu Strength (2×) | Tue Easy 10km | Fri Intervals 8×800m | Wed+Sat REST | Sun Long Run 19km | Focus: Race pace sharpening",
-  19: "Mon/Thu Strength (2×) | Tue Easy 10km | Fri Tempo 7km | Wed+Sat REST | Sun Long Run 20km 🏆 First 20km!",
-  20: "⚡ PEAK WEEK — Mon/Thu Strength | Tue Easy 10km | Fri Tempo 8km | Wed+Sat REST | Sun Long Run 20km | ~55–60km total",
-  21: "DELOAD — Mon REST | Tue Easy 8km | Wed Light Strength | Thu REST | Fri Easy 8km | Sat REST | Sun Long Run 16km (easy)",
-  22: "Mon/Thu Strength (2×) | Tue Easy 10km | Fri Intervals 10×400m | Wed+Sat REST | Sun Long Run 19km",
-  23: "Mon/Thu Strength (2×) | Tue Easy 10km | Fri Tempo 8km at race pace | Wed+Sat REST | Sun Long Run 20km — Race simulation",
-  24: "⚡ PHASE GATE — Mon Light Strength | Tue Easy 8km | Wed REST | Thu Easy 6km | Fri REST | Sat Shakeout 3km | Sun 19–20km race simulation at target pace",
-  25: "Phase 4 begins. Mon Light Strength | Tue Easy 8km | Wed REST | Thu Easy 8km | Fri Tempo 6km | Sat REST | Sun Long Run 18km",
-  26: "Mon Light Strength | Tue Easy 8km | Wed REST | Thu Easy 6km | Fri 10km tune-up race (if available) | Sat REST | Sun Easy 16km",
-  27: "Mon Light Strength | Tue Easy 8km | Wed REST | Thu Easy 8km | Fri Tempo 6km | Sat REST | Sun Long Run 18km | Nail race nutrition",
-  28: "Mon Light Strength | Tue Easy 8km | Wed REST | Thu Intervals 6×1km race pace | Fri REST | Sat Shakeout 3km | Sun Long Run 16km",
-  29: "TAPER — Mon Light Strength | Tue Easy 7km | Wed REST | Thu Easy 7km | Fri Tempo 5km | Sat REST | Sun Long Run 14km | Vol -25%",
-  30: "TAPER — Mon Light Strength | Tue Easy 6km | Wed REST | Thu Easy 6km | Fri Tempo 4km | Sat REST | Sun Long Run 12km | Vol -40%",
-  31: "TAPER — Mon Easy 5km | Tue REST | Wed Easy 5km | Thu REST | Fri Easy 3km | Sat REST | Sun Easy 10km | Carb load Fri/Sat",
-  32: "🏁 RACE WEEK — Mon Easy 3km | Tue REST | Wed Easy 3km | Thu REST | Fri REST + carb load | Sat Shakeout 2km | RACE DAY — YOU'VE MADE IT",
-}
 
 /* ─── Sub-components ─── */
 function NavBtn({ label, active, onClick }) {
@@ -274,18 +150,51 @@ function DayTypeColor(type) {
   return map[type] || 'var(--text)'
 }
 
-function DayCard({ day }) {
+function DayCard({ day, completion }) {
+  const label = day.type_label || day.typeLabel || ''
+  const isCompleted = !!completion
+  const borderLeftColor = isCompleted ? 'var(--accent)' : day.adjusted ? 'var(--accent3)' : null
   return (
     <div style={{
       background: 'var(--surface)',
       border: '1px solid var(--border)',
+      borderLeft: borderLeftColor ? `3px solid ${borderLeftColor}` : '1px solid var(--border)',
       padding: 20,
+      opacity: isCompleted ? 0.95 : 1,
     }}>
-      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 3, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 8 }}>
-        {day.name}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 3, color: 'var(--muted)', textTransform: 'uppercase' }}>
+          {day.name}
+        </div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {isCompleted && (
+            <span
+              title={`Logged ${completion.kind} on ${completion.log_date}`}
+              style={{
+                fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: 1,
+                padding: '2px 7px', background: 'var(--accent)', color: '#000',
+                textTransform: 'uppercase', fontWeight: 600,
+              }}
+            >
+              ✓ Done
+            </span>
+          )}
+          {day.adjusted && (
+            <span
+              title={day.adjustment_rationale || 'Plan adjusted based on your recent progress'}
+              style={{
+                fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: 1,
+                padding: '2px 7px', border: '1px solid var(--accent3)',
+                color: 'var(--accent3)', textTransform: 'uppercase',
+              }}
+            >
+              Adjusted
+            </span>
+          )}
+        </div>
       </div>
       <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 1, color: DayTypeColor(day.type), marginBottom: 12 }}>
-        {day.typeLabel}
+        {label}
       </div>
       <ul style={{ listStyle: 'none' }}>
         {day.details.map(([label, val], i) => (
@@ -315,6 +224,20 @@ function DayCard({ day }) {
           borderLeft: '2px solid var(--border)',
         }}>
           {day.note}
+        </div>
+      )}
+      {day.adjusted && day.adjustment_rationale && (
+        <div style={{
+          marginTop: 8,
+          padding: '8px 10px',
+          background: 'rgba(71,184,255,0.05)',
+          fontSize: 11,
+          color: 'var(--accent3)',
+          borderLeft: '2px solid var(--accent3)',
+          lineHeight: 1.5,
+        }}>
+          <strong style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: 1, textTransform: 'uppercase' }}>Why adjusted: </strong>
+          {day.adjustment_rationale}
         </div>
       )}
     </div>
@@ -469,92 +392,63 @@ function OverviewTab() {
   )
 }
 
-function WeeklyTab() {
+function WeeklyTab({ token }) {
   const [selectedWeek, setSelectedWeek] = useState(1)
+  const [weeks, setWeeks] = useState(null)
+  const [completion, setCompletion] = useState({})  // { weekNumber: { dow: dayLog } }
+  const [error, setError] = useState('')
 
-  function getPhase(w) {
-    if (w <= 8) return 1
-    if (w <= 16) return 2
-    if (w <= 24) return 3
-    return 4
-  }
+  useEffect(() => {
+    const auth = { headers: { Authorization: `Bearer ${token}` } }
+    fetch(apiUrl('/api/plan/all'), auth)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('fetch failed')))
+      .then(d => setWeeks(d.weeks))
+      .catch(() => setError('Could not load training plan.'))
+    // Completion map is optional — render the plan even if this fails
+    fetch(apiUrl('/api/day-log/all'), auth)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.by_week) setCompletion(d.by_week) })
+      .catch(() => {})
+  }, [token])
 
   function renderWeekContent(w) {
-    const phase = getPhase(w)
-    const phaseColor = PHASE_COLORS[phase]
-
-    if (w <= 8) {
-      const days = phase1Days[w - 1]
-      const focus = phase1Focus[w - 1]
+    if (!weeks) {
       return (
-        <div style={{ animation: 'fadeIn 0.2s ease' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: 1 }}>WEEK {w}</div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: 2, padding: '4px 12px', border: `1px solid ${phaseColor}`, textTransform: 'uppercase', color: phaseColor }}>Phase {phase}</div>
-          </div>
-          <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 20 }}>{focus}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-            {days.map((day, i) => <DayCard key={i} day={day} />)}
-          </div>
+        <div style={{ padding: 20, fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)' }}>
+          {error || 'Loading plan…'}
         </div>
       )
     }
-
-    if (w === 9) {
-      return (
-        <div style={{ animation: 'fadeIn 0.2s ease' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: 1 }}>WEEK 9</div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: 2, padding: '4px 12px', border: `1px solid ${phaseColor}`, textTransform: 'uppercase', color: phaseColor }}>Phase 2 — Build</div>
-          </div>
-          <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 20 }}>Tempo runs introduced. Runs get longer. Strength splits into push/pull/legs. Pace is improving.</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-            {phase2Week9Days.map((day, i) => <DayCard key={i} day={day} />)}
-          </div>
-        </div>
-      )
-    }
-
-    if (w >= 10 && w <= 16) {
-      const summary = phase2Summaries[w]
-      const weightTarget = Math.round(88 - (w - 8) * 0.5)
-      return (
-        <div style={{ animation: 'fadeIn 0.2s ease' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: 1 }}>WEEK {w}</div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: 2, padding: '4px 12px', border: `1px solid ${phaseColor}`, textTransform: 'uppercase', color: phaseColor }}>Phase 2</div>
-          </div>
-          <div style={{ ...css.infoBlock(phaseColor), marginTop: 0 }}>
-            <h3 style={css.infoH3}>Weekly Blueprint</h3>
-            <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7 }}>{summary}</p>
-            <div style={{ marginTop: 16, fontSize: 13, color: 'var(--muted)' }}>
-              <strong style={{ color: 'var(--text)' }}>Structure:</strong> Mon/Thu — Strength | Tue/Thu — Run | Sun — Long Run<br />
-              <strong style={{ color: 'var(--text)' }}>Zone 2 rule:</strong> All easy runs HR 130–145. If it spikes above 150, walk.<br />
-              <strong style={{ color: 'var(--text)' }}>Strength:</strong> Push/Pull/Legs split — no longer full body. Each session ~45–60 min.<br />
-              <strong style={{ color: 'var(--text)' }}>Weight target:</strong> ~{weightTarget} kg by end of this week
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    // Phases 3–4
-    const summary = phase34Summaries[w]
+    const week = weeks.find(x => x.week === w)
+    if (!week) return null
+    const phaseColor = PHASE_COLORS[week.phase]
     return (
       <div style={{ animation: 'fadeIn 0.2s ease' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: 1 }}>WEEK {w}</div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: 2, padding: '4px 12px', border: `1px solid ${phaseColor}`, textTransform: 'uppercase', color: phaseColor }}>Phase {phase}</div>
-        </div>
-        <div style={{ ...css.infoBlock(phaseColor), marginTop: 0 }}>
-          <h3 style={css.infoH3}>Weekly Blueprint</h3>
-          <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7 }}>{summary}</p>
-          <div style={{ marginTop: 16, fontSize: 13, color: 'var(--muted)' }}>
-            <strong style={{ color: 'var(--text)' }}>Structure:</strong> Phase 3: 2× strength, 5 runs | Phase 4: 1× strength, 5 runs<br />
-            <strong style={{ color: 'var(--text)' }}>Zone 2 rule:</strong> All easy runs remain conversational HR guided<br />
-            <strong style={{ color: 'var(--text)' }}>Strength:</strong> Maintenance only — single leg, core, injury prevention<br />
-            <strong style={{ color: 'var(--text)' }}>Key:</strong> Never skip easy days. Recovery is where fitness is built.
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: 1 }}>WEEK {week.week}</div>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: 2, padding: '4px 12px', border: `1px solid ${phaseColor}`, textTransform: 'uppercase', color: phaseColor }}>
+            Phase {week.phase} · {week.phase_name}
           </div>
+          {week.is_deload && (
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, padding: '3px 10px', border: '1px solid var(--accent2)', color: 'var(--accent2)', textTransform: 'uppercase' }}>
+              Deload
+            </div>
+          )}
+          {week.is_race_week && (
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, padding: '3px 10px', border: '1px solid var(--accent)', color: 'var(--accent)', textTransform: 'uppercase' }}>
+              🏁 Race Week
+            </div>
+          )}
+        </div>
+        {week.focus && <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 20 }}>{week.focus}</div>}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+          {week.days.map((day, i) => (
+            <DayCard
+              key={i}
+              day={day}
+              completion={completion[String(week.week)]?.[String(i)]}
+            />
+          ))}
         </div>
       </div>
     )
@@ -570,7 +464,6 @@ function WeeklyTab() {
         <h2 style={css.sectionH2}>Select a Week</h2>
       </div>
 
-      {/* Week selector buttons */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 32 }}>
         {Array.from({ length: 32 }, (_, i) => i + 1).map(w => {
           const phase = w <= 8 ? 1 : w <= 16 ? 2 : w <= 24 ? 3 : 4
@@ -720,7 +613,7 @@ function MilestonesTab() {
 }
 
 /* ─── Main Component ─── */
-export default function PlanViewer() {
+export default function PlanViewer({ token }) {
   const [activeTab, setActiveTab] = useState('overview')
 
   return (
@@ -757,7 +650,7 @@ export default function PlanViewer() {
       <div style={css.content} className="plan-content">
         <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }`}</style>
         {activeTab === 'overview' && <OverviewTab />}
-        {activeTab === 'weekly' && <WeeklyTab />}
+        {activeTab === 'weekly' && <WeeklyTab token={token} />}
         {activeTab === 'nutrition' && <NutritionTab />}
         {activeTab === 'milestones' && <MilestonesTab />}
       </div>

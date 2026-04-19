@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { apiUrl } from '../utils/api'
 
 const INPUT = {
   background: 'var(--surface2)',
@@ -84,7 +85,7 @@ function StepUpload({ onParsed, onManual }) {
     try {
       const form = new FormData()
       form.append('image', file)
-      const res = await fetch('/api/checkin/parse', {
+      const res = await fetch(apiUrl('/api/checkin/parse'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('runner_token')}` },
         body: form,
@@ -222,7 +223,7 @@ function StepReview({ parsed, imagePreview, isManual, onConfirm, onBack }) {
       fd.append('notes', form.notes || '')
       fd.append('override_json', JSON.stringify(overrideData))
 
-      const res = await fetch('/api/checkin/daily', {
+      const res = await fetch(apiUrl('/api/checkin/daily'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('runner_token')}` },
         body: fd,
@@ -340,6 +341,29 @@ function StepReview({ parsed, imagePreview, isManual, onConfirm, onBack }) {
 
 /* ── Step 3: Success ── */
 function StepSuccess({ saved, onAnother }) {
+  const [coachNote, setCoachNote] = useState(null)
+  const [loadingNote, setLoadingNote] = useState(true)
+
+  useEffect(() => {
+    if (!saved?.id) return
+    setLoadingNote(true)
+    fetch(apiUrl(`/api/coach/post-run/${saved.id}`), {
+      headers: { Authorization: `Bearer ${localStorage.getItem('runner_token')}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setCoachNote(d); setLoadingNote(false) })
+      .catch(() => setLoadingNote(false))
+  }, [saved?.id])
+
+  const metrics = coachNote?.metrics || {}
+  const paceVerdictColor = {
+    ahead_of_target: 'var(--accent)',
+    on_target: 'var(--accent3)',
+    slightly_behind: 'var(--phase2)',
+    behind: 'var(--accent2)',
+    unknown: 'var(--muted)',
+  }[metrics.pace_verdict] || 'var(--muted)'
+
   return (
     <div>
       <div style={{ padding: '20px 24px', background: 'rgba(232,255,71,0.05)', border: '1px solid rgba(232,255,71,0.15)', marginBottom: 24 }}>
@@ -365,6 +389,60 @@ function StepSuccess({ saved, onAnother }) {
         ))}
       </div>
 
+      {/* Post-run coach summary */}
+      {(coachNote || loadingNote) && (
+        <div style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderLeft: `3px solid ${paceVerdictColor}`,
+          padding: '16px 20px',
+          marginBottom: 24,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: paceVerdictColor, textTransform: 'uppercase' }}>
+              Coach Summary
+            </span>
+            {coachNote?.model && coachNote.model !== 'rules' && (
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--muted)' }}>{coachNote.model}</span>
+            )}
+          </div>
+          {loadingNote ? (
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)' }}>
+              Analyzing workout…
+            </div>
+          ) : coachNote ? (
+            <>
+              {/* Offset quick-read row */}
+              {(metrics.pace_offset_sec !== null && metrics.pace_offset_sec !== undefined) && (
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 10, fontFamily: "'DM Mono', monospace", fontSize: 11 }}>
+                  <span>
+                    <span style={{ color: 'var(--muted)' }}>Pace offset: </span>
+                    <span style={{ color: paceVerdictColor, fontWeight: 600 }}>
+                      {metrics.pace_offset_sec > 0 ? '+' : ''}{metrics.pace_offset_sec}s/km
+                    </span>
+                  </span>
+                  {metrics.target_pace && (
+                    <span>
+                      <span style={{ color: 'var(--muted)' }}>Target: </span>
+                      <span style={{ color: 'var(--text)' }}>{metrics.target_pace}</span>
+                    </span>
+                  )}
+                  {metrics.distance_offset !== null && metrics.distance_offset !== undefined && (
+                    <span>
+                      <span style={{ color: 'var(--muted)' }}>Distance: </span>
+                      <span style={{ color: 'var(--text)' }}>
+                        {metrics.distance_offset > 0 ? '+' : ''}{metrics.distance_offset} km
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
+              <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>{coachNote.text}</div>
+            </>
+          ) : null}
+        </div>
+      )}
+
       <button onClick={onAnother} style={{
         background: 'none', border: '1px solid var(--border)', color: 'var(--muted)',
         fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: 2,
@@ -388,7 +466,7 @@ export default function LogRun({ token }) {
   const [loadingHistory, setLoadingHistory] = useState(true)
 
   useEffect(() => {
-    fetch('/api/checkin/daily', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(apiUrl('/api/checkin/daily'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => { setHistory(d); setLoadingHistory(false) })
       .catch(() => setLoadingHistory(false))

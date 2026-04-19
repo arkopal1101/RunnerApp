@@ -69,15 +69,45 @@ cp .env.example .env   # fill in values
 docker-compose up --build
 ```
 
-## Deploy to HuggingFace Spaces
+## Deploy — two options
+
+### Option A: Monolithic (backend + frontend on HuggingFace Spaces)
 
 1. Create a new Space: **Docker** type, port **7860**
-2. Push this repo to the Space's git remote
+2. Push this repo to the Space's git remote (uses the root-level `Dockerfile`)
 3. In **Settings → Repository Secrets**, add:
-   - `PASSWORD_HASH` — from `generate_password_hash.py`
+   - `APP_PASSWORD` — your login password (or `PASSWORD_HASH` for a pre-hashed value)
    - `JWT_SECRET` — any 32+ character random string
-   - `GEMINI_API_KEY` — (optional) for LLM image parsing fallback
-4. The Space will build and deploy automatically
+   - `OPENAI_API_KEY` — for GPT-5 vision screenshot parsing
+   - `OPENAI_MODEL` — (optional) overrides the default `gpt-5-mini`
+4. The Space builds and deploys automatically. Open the Space URL to use the app.
+
+### Option B: Decoupled (frontend on Railway, backend on HuggingFace Spaces)
+
+Better mobile experience — the HF Spaces frame is removed, and you get Railway's custom domain.
+
+**Backend (HuggingFace Spaces):**
+
+Same as Option A steps 1-4, **but** the frontend won't be used from here — your phone will hit Railway. You can still visit the Space URL directly for backend API docs at `/api/docs`.
+
+Additionally, tighten CORS if you want (currently it's `*`): edit [backend/main.py](backend/main.py) and set `allow_origins=["https://<your-railway-app>.up.railway.app"]`.
+
+**Frontend (Railway):**
+
+1. Create a new Railway project pointing at this repo.
+2. In the service settings, set **Root Directory** to `frontend/`. Railway will auto-detect [frontend/Dockerfile](frontend/Dockerfile).
+3. In **Variables**, add:
+   - `VITE_API_BASE_URL` = `https://<your-space>.hf.space` (your HF Space URL, no trailing slash)
+
+   Also mark it as a **Build-time variable** (or add `VITE_API_BASE_URL` as a build arg in Railway's advanced settings) — Vite needs this at build time, not runtime.
+4. Deploy. Railway serves the built SPA via nginx (with SPA-route fallback + $PORT binding).
+
+Open your Railway URL on your phone — all `/api/*` calls will hit the HF Space.
+
+### Data Persistence Note
+HuggingFace Spaces **free tier** has ephemeral storage — SQLite and uploaded images will reset on restart. Options:
+- **Paid tier**: Persistent disk (recommended)
+- **Free tier backup**: Periodically sync `/data/runner.db` to a HF Dataset repo using the HF API
 
 ### Data Persistence Note
 HuggingFace Spaces **free tier** has ephemeral storage — SQLite and uploaded images will reset on restart. Options:
@@ -86,12 +116,22 @@ HuggingFace Spaces **free tier** has ephemeral storage — SQLite and uploaded i
 
 ## Environment Variables
 
+### Backend (HuggingFace Spaces)
+
 | Variable | Required | Description |
 |---|---|---|
-| `PASSWORD_HASH` | Yes | bcrypt hash of your login password |
+| `APP_PASSWORD` | One of these | Plain-text login password (simplest) |
+| `PASSWORD_HASH` | One of these | Pre-computed bcrypt hash of login password |
 | `JWT_SECRET` | Yes | Secret key for JWT signing (32+ chars) |
-| `GEMINI_API_KEY` | No | Enables Gemini Flash for screenshot parsing |
+| `OPENAI_API_KEY` | No | Enables GPT-5 vision screenshot parsing fallback |
+| `OPENAI_MODEL` | No | Defaults to `gpt-5-mini`; override e.g. to `gpt-5-nano` to save cost |
 | `DATA_DIR` | No | Data directory path (default: `./data`) |
+
+### Frontend (Railway, decoupled deploy only)
+
+| Variable | Required | Description |
+|---|---|---|
+| `VITE_API_BASE_URL` | Yes (build-time) | Absolute URL of the HF Spaces backend, e.g. `https://arko-runner.hf.space`. Must be set as a **Build-time** variable in Railway. |
 
 ## Default Credentials (local dev only)
 If `PASSWORD_HASH` is not set, a default hash for password `runner123` is used. **Change this before deploying.**

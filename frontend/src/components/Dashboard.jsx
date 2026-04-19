@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react'
+import { apiUrl } from '../utils/api'
+import WeeklyRings from './WeeklyRings'
+import WeekOverWeek from './WeekOverWeek'
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
@@ -136,15 +139,50 @@ function EmptyChart({ message, cta }) {
 /* ── Main dashboard ── */
 export default function Dashboard({ token }) {
   const [data, setData] = useState(null)
+  const [weeklySummary, setWeeklySummary] = useState(null)
+  const [baseline, setBaseline] = useState(null)
+  const [calibrating, setCalibrating] = useState(false)
+  const [calibrateError, setCalibrateError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const loadBaseline = () => fetch(apiUrl('/api/baseline'), { headers: { Authorization: `Bearer ${token}` } })
+    .then(r => r.ok ? r.json() : null).catch(() => null)
+
   useEffect(() => {
-    fetch('/api/progress', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false) })
+    const auth = { headers: { Authorization: `Bearer ${token}` } }
+    const p1 = fetch(apiUrl('/api/progress'), auth).then(r => r.json())
+    const p2 = fetch(apiUrl('/api/progress/weekly-summary'), auth)
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+    const p3 = loadBaseline()
+    Promise.all([p1, p2, p3])
+      .then(([d, ws, bl]) => { setData(d); setWeeklySummary(ws); setBaseline(bl); setLoading(false) })
       .catch(() => { setError('Failed to load progress data.'); setLoading(false) })
   }, [token])
+
+  async function runCalibrate(force = false) {
+    setCalibrating(true)
+    setCalibrateError('')
+    try {
+      const res = await fetch(apiUrl(`/api/baseline/calibrate${force ? '?force=true' : ''}`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.status === 409) {
+        setCalibrateError('Baseline already set. Use force to recalibrate.')
+      } else if (res.status === 400) {
+        const j = await res.json()
+        setCalibrateError(j.detail || 'Not enough Week 1 runs yet.')
+      } else if (res.ok) {
+        setBaseline(await res.json())
+      } else {
+        setCalibrateError('Calibration failed.')
+      }
+    } finally {
+      setCalibrating(false)
+    }
+  }
 
   if (loading) return (
     <div style={{ padding: 40, fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)' }}>
@@ -172,6 +210,56 @@ export default function Dashboard({ token }) {
           Phase {phase} · {summary.phase_progress_pct}%
         </div>
       </div>
+
+      {/* Personal baseline */}
+      <div style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        padding: '16px 20px',
+        marginBottom: 24,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+              Personal Z2 Baseline
+            </div>
+            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, color: baseline?.is_calibrated ? 'var(--accent)' : 'var(--muted)', letterSpacing: 1 }}>
+              {baseline?.is_calibrated ? baseline.baseline_pace_str : 'Not calibrated'}
+            </div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
+              {baseline?.is_calibrated
+                ? `Calibrated ${baseline.calibrated_at?.slice(0, 10)} — locked`
+                : 'Log your Week 1 runs, then calibrate to lock in your starting point.'}
+            </div>
+          </div>
+          {!baseline?.is_calibrated && (
+            <button onClick={() => runCalibrate(false)} disabled={calibrating}
+              style={{ background: 'var(--accent)', border: 'none', color: '#000', fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', padding: '9px 16px', cursor: calibrating ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: calibrating ? 0.6 : 1 }}>
+              {calibrating ? 'Calibrating…' : 'Calibrate'}
+            </button>
+          )}
+        </div>
+        {calibrateError && (
+          <div style={{ marginTop: 10, color: 'var(--accent2)', fontFamily: "'DM Mono', monospace", fontSize: 11 }}>
+            {calibrateError}
+          </div>
+        )}
+      </div>
+
+      {/* Weekly rings + WoW */}
+      {weeklySummary?.rings && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 32 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '20px 24px' }}>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 14 }}>
+              Week {weeklySummary.week} Goals
+            </div>
+            <WeeklyRings rings={weeklySummary.rings} week={weeklySummary.week} />
+          </div>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '20px 24px' }}>
+            <WeekOverWeek wow={weeklySummary.week_over_week} week={weeklySummary.week} />
+          </div>
+        </div>
+      )}
 
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 36 }}>

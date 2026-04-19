@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { START_DATE, START_WEIGHT, TARGET_WEIGHT, START_WAIST, TARGET_WAIST, HEIGHT_CM } from '../utils/planData'
+import { apiUrl } from '../utils/api'
 
 function getCurrentWeek() {
   const diffDays = Math.floor((new Date() - START_DATE) / (1000 * 60 * 60 * 24))
@@ -58,7 +59,7 @@ export default function WeeklyLog({ token }) {
   const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
-    fetch('/api/log/weekly', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(apiUrl('/api/log/weekly'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => {
         setHistory(data)
@@ -101,7 +102,7 @@ export default function WeeklyLog({ token }) {
       let res, data
       if (isUpdating && existingLog) {
         // PUT update
-        res = await fetch(`/api/log/weekly/${existingLog.id}`, {
+        res = await fetch(apiUrl(`/api/log/weekly/${existingLog.id}`), {
           method: 'PUT',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -115,7 +116,7 @@ export default function WeeklyLog({ token }) {
         })
       } else {
         // POST new
-        res = await fetch('/api/log/weekly', {
+        res = await fetch(apiUrl('/api/log/weekly'), {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
