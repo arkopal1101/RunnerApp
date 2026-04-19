@@ -1,11 +1,12 @@
 import json
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import DailyCheckin, WeeklyLog, User
+from ..weekly_summary import compute_weekly_summary
 from .auth import get_current_user
 
 router = APIRouter()
@@ -387,3 +388,23 @@ def get_progress(
         "insights": compute_insights(checkins, weekly_logs, current_week),
         "phase_gate": compute_phase_gate(current_phase, checkins, weekly_logs),
     }
+
+
+@router.get("/progress/weekly-summary")
+def weekly_summary(
+    week: int | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Rings (volume/sessions/Z2 adherence) + week-over-week comparison."""
+    target_week = week if week is not None else get_current_week()
+    if not 1 <= target_week <= 32:
+        raise HTTPException(status_code=404, detail="Week out of range (1-32)")
+
+    checkins = (
+        db.query(DailyCheckin)
+        .filter(DailyCheckin.user_id == current_user.id)
+        .order_by(DailyCheckin.checkin_date.asc())
+        .all()
+    )
+    return compute_weekly_summary(checkins, target_week)

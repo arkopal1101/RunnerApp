@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import { apiUrl } from '../utils/api'
 
 export default function DailyCheckin({ token }) {
   const [dragging, setDragging] = useState(false)
@@ -36,7 +37,7 @@ export default function DailyCheckin({ token }) {
       const formData = new FormData()
       formData.append('image', imageFile)
       formData.append('notes', notes)
-      const res = await fetch('/api/checkin/daily', {
+      const res = await fetch(apiUrl('/api/checkin/daily'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

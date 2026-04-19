@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
-import { PHASE_NAMES, PHASE_COLORS, DAY_TYPE_COLORS, getCTALabel, getCTATab } from '../utils/planData'
+import { PHASE_NAMES, PHASE_COLORS, DAY_TYPE_COLORS, getCTALabel, getCTATab, restDayMessage } from '../utils/planData'
+import { apiUrl } from '../utils/api'
+import WeeklyRings from './WeeklyRings'
+import WeekOverWeek from './WeekOverWeek'
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -67,15 +70,57 @@ function MetricTile({ label, value, sub, color = 'var(--accent)' }) {
 
 export default function Today({ token, onNavigate }) {
   const [data, setData] = useState(null)
+  const [coachNote, setCoachNote] = useState(null)
+  const [weeklySummary, setWeeklySummary] = useState(null)
+  const [todayCompletion, setTodayCompletion] = useState(null)
+  const [restSaving, setRestSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const fetchWeekCompletion = (week, auth) =>
+    fetch(apiUrl(`/api/day-log/week/${week}`), auth)
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+
   useEffect(() => {
-    fetch('/api/today', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false) })
+    const auth = { headers: { Authorization: `Bearer ${token}` } }
+    // Fire in parallel — Today data is required, others are optional.
+    const p1 = fetch(apiUrl('/api/today'), auth).then(r => r.json())
+    const p2 = fetch(apiUrl('/api/coach/pre-run'), auth)
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+    const p3 = fetch(apiUrl('/api/progress/weekly-summary'), auth)
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+    Promise.all([p1, p2, p3])
+      .then(([todayData, note, summary]) => {
+        setData(todayData); setCoachNote(note); setWeeklySummary(summary); setLoading(false)
+        // Check if today is already logged
+        if (todayData?.current_week != null && todayData?.day_of_week != null) {
+          fetchWeekCompletion(todayData.current_week, auth).then(wk => {
+            if (wk?.by_day_of_week) {
+              setTodayCompletion(wk.by_day_of_week[String(todayData.day_of_week)] || null)
+            }
+          })
+        }
+      })
       .catch(() => { setError('Could not load today data.'); setLoading(false) })
   }, [token])
+
+  async function markRested(week, dow) {
+    if (restSaving || todayCompletion) return
+    setRestSaving(true)
+    try {
+      const res = await fetch(apiUrl('/api/day-log'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'rest', week_number: week, day_of_week: dow }),
+      })
+      if (res.ok) setTodayCompletion(await res.json())
+    } finally {
+      setRestSaving(false)
+    }
+  }
 
   if (loading) return (
     <div style={{ padding: 40, fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)' }}>
@@ -94,7 +139,8 @@ export default function Today({ token, onNavigate }) {
 
   const { current_week, current_phase, phase_name, day_of_week, day_type, next_action,
     plan_complete, phase_progress_pct, weeks_until_phase_gate,
-    latest_checkin, latest_weekly_log, phase_gate, status, coaching_note, today_date } = data
+    latest_checkin, latest_weekly_log, phase_gate, status, coaching_note, today_date,
+    week_focus, activity } = data
 
   const phaseColor = PHASE_COLORS[current_phase]
   const dayColor = DAY_TYPE_COLORS[day_type] || 'var(--muted)'
@@ -142,7 +188,7 @@ export default function Today({ token, onNavigate }) {
         </div>
       ) : (
         <>
-          {/* Today's workout */}
+          {/* Today's workout — full activity spec from plan (with any adjustments merged) */}
           <div style={{
             background: 'var(--surface)',
             border: '1px solid var(--border)',
@@ -150,31 +196,139 @@ export default function Today({ token, onNavigate }) {
             padding: '20px 24px',
             marginBottom: 24,
           }}>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>
-              {dayName}'s Training
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                {dayName}'s Training
+              </span>
+              {activity?.adjusted && (
+                <span
+                  title={activity.adjustment_rationale}
+                  style={{
+                    fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 1,
+                    padding: '2px 8px', border: '1px solid var(--accent3)',
+                    color: 'var(--accent3)', textTransform: 'uppercase',
+                  }}
+                >
+                  Adjusted
+                </span>
+              )}
             </div>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, color: dayColor, letterSpacing: 1, marginBottom: 16 }}>
-              {getDayLabel(day_type, current_week)}
+            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, color: dayColor, letterSpacing: 1, marginBottom: 8 }}>
+              {activity?.type_label || getDayLabel(day_type, current_week)}
             </div>
+            {week_focus && (
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginBottom: 16, fontStyle: 'italic' }}>
+                {week_focus}
+              </div>
+            )}
 
-            {/* Primary CTA */}
-            <button
-              onClick={() => onNavigate(ctaTab)}
-              style={{
-                background: 'var(--accent)',
-                border: 'none',
-                color: '#000',
-                fontFamily: "'DM Mono', monospace",
+            {/* Activity detail rows */}
+            {activity?.details?.length > 0 && (
+              <ul style={{ listStyle: 'none', marginBottom: 16, borderTop: '1px solid var(--border)' }}>
+                {activity.details.map(([label, val], i) => (
+                  <li key={i} style={{
+                    fontSize: 13,
+                    color: 'var(--muted)',
+                    padding: '8px 0',
+                    borderBottom: '1px solid var(--border)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 12,
+                  }}>
+                    <span>{label}</span>
+                    <span style={{ color: 'var(--text)', fontWeight: 500, textAlign: 'right', fontSize: 12 }}>{val}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Day-specific note */}
+            {activity?.note && (
+              <div style={{
+                marginBottom: 10,
+                padding: '10px 14px',
+                background: 'var(--surface2)',
                 fontSize: 12,
-                letterSpacing: 3,
-                textTransform: 'uppercase',
-                padding: '12px 24px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-              }}
-            >
-              {ctaLabel}
-            </button>
+                color: 'var(--muted)',
+                fontStyle: 'italic',
+                borderLeft: '2px solid var(--border)',
+              }}>
+                {activity.note}
+              </div>
+            )}
+
+            {/* Adjustment rationale */}
+            {activity?.adjusted && activity.adjustment_rationale && (
+              <div style={{
+                marginBottom: 16,
+                padding: '10px 14px',
+                background: 'rgba(71,184,255,0.05)',
+                fontSize: 12,
+                color: 'var(--accent3)',
+                borderLeft: '2px solid var(--accent3)',
+                lineHeight: 1.5,
+              }}>
+                <strong style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' }}>Why adjusted: </strong>
+                {activity.adjustment_rationale}
+              </div>
+            )}
+
+            {/* Rest-day funny message + inline Rested Today button */}
+            {day_type === 'rest' && !todayCompletion && (
+              <div style={{
+                padding: '12px 14px',
+                marginBottom: 14,
+                background: 'rgba(232,255,71,0.04)',
+                border: '1px solid var(--border)',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 14,
+                color: 'var(--text)',
+                lineHeight: 1.5,
+              }}>
+                {restDayMessage(current_week, day_of_week)}
+              </div>
+            )}
+
+            {/* Primary CTA — context-aware */}
+            {todayCompletion ? (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 10,
+                padding: '10px 20px',
+                background: 'var(--accent)', color: '#000',
+                fontFamily: "'DM Mono', monospace", fontSize: 12,
+                letterSpacing: 3, textTransform: 'uppercase', fontWeight: 'bold',
+              }}>
+                ✓ Logged Today
+                <span style={{ fontSize: 10, opacity: 0.75, letterSpacing: 1 }}>
+                  {todayCompletion.kind}
+                </span>
+              </div>
+            ) : day_type === 'rest' ? (
+              <button
+                onClick={() => markRested(current_week, day_of_week)}
+                disabled={restSaving}
+                style={{
+                  background: 'var(--accent)', border: 'none', color: '#000',
+                  fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: 3,
+                  textTransform: 'uppercase', padding: '12px 24px', fontWeight: 'bold',
+                  cursor: restSaving ? 'not-allowed' : 'pointer', opacity: restSaving ? 0.7 : 1,
+                }}
+              >
+                {restSaving ? 'Saving…' : 'Rested Today'}
+              </button>
+            ) : (
+              <button
+                onClick={() => onNavigate(ctaTab)}
+                style={{
+                  background: 'var(--accent)', border: 'none', color: '#000',
+                  fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: 3,
+                  textTransform: 'uppercase', padding: '12px 24px', fontWeight: 'bold', cursor: 'pointer',
+                }}
+              >
+                {ctaLabel}
+              </button>
+            )}
           </div>
 
           {/* Phase progress bar */}
@@ -225,6 +379,33 @@ export default function Today({ token, onNavigate }) {
         )}
       </div>
 
+      {/* Weekly progress rings */}
+      {weeklySummary?.rings && (
+        <div style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          padding: '20px 24px',
+          marginBottom: 24,
+        }}>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 14 }}>
+            This Week's Goals
+          </div>
+          <WeeklyRings rings={weeklySummary.rings} week={weeklySummary.week} />
+        </div>
+      )}
+
+      {/* Week-over-week */}
+      {weeklySummary?.week_over_week && (
+        <div style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          padding: '20px 24px',
+          marginBottom: 24,
+        }}>
+          <WeekOverWeek wow={weeklySummary.week_over_week} week={weeklySummary.week} />
+        </div>
+      )}
+
       {/* Phase Gate */}
       {phase_gate && phase_gate.requirements?.length > 0 && (
         <div style={{
@@ -253,16 +434,25 @@ export default function Today({ token, onNavigate }) {
         </div>
       )}
 
-      {/* Coaching note */}
-      {coaching_note && (
+      {/* Coach note — LLM-generated pre-run target + guidance (falls back to rules) */}
+      {(coachNote?.text || coaching_note) && (
         <div style={{
           background: 'rgba(232,255,71,0.04)',
           border: '1px solid rgba(232,255,71,0.12)',
           padding: '16px 20px',
           marginBottom: 24,
         }}>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 6 }}>Coach Note</div>
-          <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{coaching_note}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'var(--accent)', textTransform: 'uppercase' }}>Coach Note</span>
+            {coachNote?.model && coachNote.model !== 'rules' && (
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: 1, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                {coachNote.model}
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
+            {coachNote?.text || coaching_note}
+          </div>
         </div>
       )}
 

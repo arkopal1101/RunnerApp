@@ -100,6 +100,10 @@ select:focus-visible {
   border-bottom-color: var(--accent);
 }
 
+/* Mobile nav uses short labels; desktop uses long ones. Default: show long, hide short. */
+.nav-tab-label-short { display: none; }
+.nav-tab-label-full { display: inline; }
+
 .nav-logout {
   background: none;
   border: 1px solid var(--border);
@@ -171,6 +175,15 @@ select:focus-visible {
 
   .page-pad {
     padding: 16px 12px;
+  }
+
+  /* Swap to short labels so the 5-tab nav fits a phone without scrolling. */
+  .nav-tab-label-full { display: none; }
+  .nav-tab-label-short { display: inline; }
+
+  .nav-logout {
+    font-size: 11px;
+    padding: 4px 8px;
   }
 }
 

@@ -20,6 +20,8 @@ build/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+# Vite outputs here (configured in vite.config.js). Built in-container on deploy.
+/static/
 
 # OS
 .DS_Store
@@ -28,3 +30,10 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Claude Code worktrees + local settings
+.claude/
+
+# Personal training data (screenshots etc — not for the public repo)
+Week 1 Run Data/
+Week 1 data/

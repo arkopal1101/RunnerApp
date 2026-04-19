@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import DailyCheckin, WeeklyLog, User
+from ..plan_data import get_day as plan_get_day, get_week_focus
+from ..services.adjuster import get_adjusted_day
 from .auth import get_current_user
 
 router = APIRouter()
@@ -215,7 +217,20 @@ def get_today(
             "waist_inches": w.waist_inches,
         }
 
-    day_type = get_day_type(current_week, day_of_week)
+    # Full day activity spec from plan_data (single source of truth).
+    # If a PlanAdjustment exists for today, surface the adjusted day instead.
+    plan_day = plan_get_day(current_week, day_of_week) or {}
+    adj = get_adjusted_day(db, current_user.id, current_week, day_of_week)
+    if adj:
+        plan_day = dict(adj["day"])
+        plan_day["adjusted"] = True
+        plan_day["adjustment_rationale"] = adj["rationale"]
+        plan_day["adjusted_at"] = adj["adjusted_at"]
+    else:
+        plan_day["adjusted"] = False
+    week_focus = get_week_focus(current_week)
+    # day_type from plan data takes precedence; fall back to computed type
+    day_type = plan_day.get("type") or get_day_type(current_week, day_of_week)
 
     # Next action
     if day_of_week == 6:  # Sunday: suggest weekly check-in alongside run
@@ -256,4 +271,6 @@ def get_today(
         "phase_gate": compute_phase_gate(current_phase, checkins, weekly_logs),
         "status": overall_status,
         "coaching_note": get_coaching_note(current_week, current_phase, checkins, weekly_logs),
+        "week_focus": week_focus,
+        "activity": plan_day or None,
     }
