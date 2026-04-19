@@ -12,8 +12,8 @@ from .auth import get_current_user
 router = APIRouter()
 
 START_DATE = date(2026, 4, 14)
-START_WEIGHT_KG = 94.0
-START_WAIST_INCHES = 38.0
+START_WEIGHT_KG = 95.0
+START_WAIST_INCHES = 40.0
 HEIGHT_CM = 180.5  # 5'11"
 
 
