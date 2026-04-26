@@ -11,12 +11,6 @@ RUN npm run build
 # ── Stage 2: Python backend ─────────────────────────────────────────────────
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y \
-    tesseract-ocr \
-    tesseract-ocr-eng \
-    libgl1 \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 # Copy backend
@@ -33,11 +27,11 @@ RUN pip install --no-cache-dir \
     python-jose[cryptography] \
     bcrypt \
     python-multipart \
-    pytesseract \
-    Pillow \
-    google-generativeai
+    requests
 
-# Create data directory
+# Persistent storage: mount an HF Storage Bucket at /data (see README / Space settings).
+# DATA_DIR is read by backend/database.py and checkin.py to locate runner.db and uploads.
+ENV DATA_DIR=/data
 RUN mkdir -p /data/uploads
 
 # HuggingFace Spaces requires port 7860

@@ -24,6 +24,7 @@ class DailyCheckin(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     checkin_date = Column(String, nullable=False)
     image_path = Column(String)
+    summary_image_path = Column(String)  # optional Workout Summary screenshot
     raw_text_extracted = Column(Text)
     total_distance_km = Column(Float)
     total_time_seconds = Column(Integer)
@@ -34,6 +35,26 @@ class DailyCheckin(Base):
     splits_json = Column(Text)
     week_number = Column(Integer)
     notes = Column(Text)
+    # ── Workout Summary screenshot fields (all nullable) ────────────────
+    workout_started_at = Column(String)         # ISO datetime, e.g. "2026-04-26T06:42:00"
+    workout_ended_at = Column(String)
+    workout_time_seconds = Column(Integer)      # moving time
+    total_elapsed_seconds = Column(Integer)     # includes pauses
+    location_name = Column(String)              # raw text from screenshot, e.g. "Gurugram"
+    location_lat = Column(Float)                # resolved via Open-Meteo geocoding
+    location_lon = Column(Float)
+    elevation_gain_m = Column(Float)
+    avg_cadence_spm = Column(Integer)
+    active_calories = Column(Integer)
+    total_calories = Column(Integer)
+    perceived_effort = Column(Integer)          # Apple's Effort field, 1-10
+    # ── Weather fields (auto-fetched from Open-Meteo at check-in) ───────
+    temperature_c = Column(Float)
+    apparent_temperature_c = Column(Float)
+    humidity_pct = Column(Integer)
+    wind_speed_kmh = Column(Float)
+    precipitation_mm = Column(Float)
+    weather_code = Column(Integer)              # WMO code; decoded for display
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

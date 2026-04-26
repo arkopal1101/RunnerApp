@@ -450,6 +450,29 @@ export default function Today({ token, onNavigate }) {
               </span>
             )}
           </div>
+
+          {/* Heat-adjusted target chip — only if forecast was found and adds a penalty */}
+          {coachNote?.metrics?.heat_adjusted_target_upper_str && coachNote?.metrics?.heat_penalty_sec > 0 && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '6px 12px', marginBottom: 10,
+              background: 'rgba(255,107,53,0.06)',
+              border: '1px solid rgba(255,107,53,0.2)',
+              fontFamily: "'DM Mono', monospace", fontSize: 11,
+            }}>
+              <span style={{ color: 'var(--accent2)', letterSpacing: 1, textTransform: 'uppercase' }}>Heat-Adjusted</span>
+              <span style={{ color: 'var(--text)' }}>
+                {coachNote.metrics.heat_adjusted_target_upper_str}/km
+              </span>
+              <span style={{ color: 'var(--muted)' }}>
+                +{coachNote.metrics.heat_penalty_sec}s vs plan
+                {coachNote.metrics.forecast_apparent_temperature_c != null && (
+                  <> · feels like {Math.round(coachNote.metrics.forecast_apparent_temperature_c)}°C</>
+                )}
+              </span>
+            </div>
+          )}
+
           <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
             {coachNote?.text || coaching_note}
           </div>

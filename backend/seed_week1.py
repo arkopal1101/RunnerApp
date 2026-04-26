@@ -13,7 +13,7 @@ Files are mapped to the Week 1 run days in sorted order:
     Run 3 → Sun (dow=6)
 
 The script:
-  1. Parses each image via parse_workout_screenshot (OCR → LLM fallback)
+  1. Parses each image via parse_workout_screenshot (OpenAI vision)
   2. Saves a DailyCheckin row tagged to Week 1 + the matching weekday
   3. Creates a DayLog row (kind=run) so the day cards show completed
   4. Calls baseline calibration to lock in the user's Z2 starting pace
@@ -56,13 +56,13 @@ from backend.routes.baseline import calibrate_baseline
 from backend.routes.day_log import upsert_day_log
 from backend.routes.checkin import get_week_number
 
-# Sunday of Week 1 = 2026-04-19 (per START_DATE 2026-04-14 Mon).
+# Sunday of Week 1 = 2026-04-19 (per START_DATE 2026-04-13 Mon).
 # Map files → weekdays (Mon=0..Sun=6).
 WEEK1_DAY_MAP = {0: 1, 1: 4, 2: 6}  # index of sorted file → day_of_week
 
 
 def _week1_date(day_of_week: int) -> str:
-    start = date(2026, 4, 14)  # Week 1 Monday
+    start = date(2026, 4, 13)  # Week 1 Monday
     return (start + timedelta(days=day_of_week)).isoformat()
 
 

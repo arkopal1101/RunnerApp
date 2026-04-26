@@ -68,23 +68,81 @@ function HistoryRow({ entry }) {
   )
 }
 
-/* ── Step 1: Upload or Manual choice ── */
-function StepUpload({ onParsed, onManual }) {
+/* ── Single drop zone (used twice in the upload step) ── */
+function DropZone({ file, onFile, label, sublabel, primary }) {
   const [dragging, setDragging] = useState(false)
-  const [parsing, setParsing] = useState(false)
-  const [error, setError] = useState('')
   const fileRef = useRef(null)
 
-  const processFile = useCallback(async (file) => {
-    if (!file || !file.type.startsWith('image/')) {
-      setError('Please select an image file (PNG or JPG).')
+  return (
+    <div
+      onDragOver={e => { e.preventDefault(); setDragging(true) }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={e => {
+        e.preventDefault(); setDragging(false)
+        const f = e.dataTransfer.files[0]
+        if (f && f.type.startsWith('image/')) onFile(f)
+      }}
+      onClick={() => fileRef.current?.click()}
+      style={{
+        border: `2px dashed ${dragging ? 'var(--accent)' : file ? 'var(--accent3)' : 'var(--border)'}`,
+        background: dragging ? 'rgba(232,255,71,0.03)' : file ? 'rgba(71,184,255,0.03)' : 'var(--surface)',
+        padding: '20px 16px',
+        textAlign: 'center',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        minHeight: 110,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+      }}
+    >
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={e => {
+          const f = e.target.files[0]
+          if (f) onFile(f)
+        }}
+      />
+      <div style={{
+        fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2,
+        color: primary ? 'var(--accent)' : 'var(--muted)', textTransform: 'uppercase', marginBottom: 6,
+      }}>
+        {label}{primary ? ' · required' : ' · optional'}
+      </div>
+      {file ? (
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--accent3)' }}>
+          ✓ {file.name}
+        </div>
+      ) : (
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+          {sublabel}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Step 1: Upload or Manual choice ── */
+function StepUpload({ onParsed, onManual }) {
+  const [splitsFile, setSplitsFile] = useState(null)
+  const [summaryFile, setSummaryFile] = useState(null)
+  const [parsing, setParsing] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = useCallback(async () => {
+    if (!splitsFile) {
+      setError('Splits screenshot is required.')
       return
     }
     setParsing(true)
     setError('')
     try {
       const form = new FormData()
-      form.append('image', file)
+      form.append('image', splitsFile)
+      if (summaryFile) form.append('summary_image', summaryFile)
       const res = await fetch(apiUrl('/api/checkin/parse'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('runner_token')}` },
@@ -92,49 +150,56 @@ function StepUpload({ onParsed, onManual }) {
       })
       if (!res.ok) throw new Error('Parse failed')
       const data = await res.json()
-      onParsed(data, URL.createObjectURL(file))
+      onParsed(data, URL.createObjectURL(splitsFile))
     } catch {
       setError('Could not parse the screenshot. You can enter the data manually.')
     } finally {
       setParsing(false)
     }
-  }, [onParsed])
+  }, [splitsFile, summaryFile, onParsed])
 
   return (
     <div>
-      {/* Drop zone */}
-      <div
-        onDragOver={e => { e.preventDefault(); setDragging(true) }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={e => { e.preventDefault(); setDragging(false); processFile(e.dataTransfer.files[0]) }}
-        onClick={() => fileRef.current?.click()}
+      <div className="two-col" style={{ marginBottom: 12 }}>
+        <DropZone
+          file={splitsFile}
+          onFile={setSplitsFile}
+          label="Splits"
+          sublabel="Per-km table screenshot"
+          primary
+        />
+        <DropZone
+          file={summaryFile}
+          onFile={setSummaryFile}
+          label="Workout Summary"
+          sublabel="For weather, elevation, cadence"
+        />
+      </div>
+
+      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginBottom: 14, lineHeight: 1.5 }}>
+        Add the Workout Summary screenshot to unlock heat-adjusted pace targets, elevation context, and cadence trends.
+      </div>
+
+      <button
+        onClick={submit}
+        disabled={!splitsFile || parsing}
         style={{
-          border: `2px dashed ${dragging ? 'var(--accent)' : 'var(--border)'}`,
-          background: dragging ? 'rgba(232,255,71,0.03)' : 'var(--surface)',
-          padding: '40px 24px',
-          textAlign: 'center',
-          cursor: 'pointer',
-          marginBottom: 16,
-          transition: 'all 0.2s',
+          width: '100%',
+          marginBottom: 12,
+          background: splitsFile && !parsing ? 'var(--accent)' : 'var(--surface2)',
+          border: 'none',
+          color: splitsFile && !parsing ? '#000' : 'var(--muted)',
+          fontFamily: "'DM Mono', monospace",
+          fontSize: 12,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          padding: '14px',
+          fontWeight: 'bold',
+          cursor: splitsFile && !parsing ? 'pointer' : 'not-allowed',
         }}
       >
-        <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
-          onChange={e => processFile(e.target.files[0])} />
-        {parsing ? (
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: 'var(--muted)' }}>
-            Parsing screenshot...
-          </div>
-        ) : (
-          <>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: 'var(--muted)', marginBottom: 6 }}>
-              Drop Apple Health Screenshot Here
-            </div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', letterSpacing: 1 }}>
-              or click to browse · PNG / JPG
-            </div>
-          </>
-        )}
-      </div>
+        {parsing ? 'Parsing screenshots…' : 'Parse & Continue'}
+      </button>
 
       {error && (
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--accent2)', marginBottom: 12, padding: '10px 14px', background: 'rgba(255,107,53,0.05)', border: '1px solid rgba(255,107,53,0.15)' }}>
@@ -177,8 +242,18 @@ function StepUpload({ onParsed, onManual }) {
 function StepReview({ parsed, imagePreview, isManual, onConfirm, onBack }) {
   const today = new Date().toISOString().split('T')[0]
 
+  // For backfills: if the Workout Summary screenshot gave us a start datetime,
+  // use its date (YYYY-MM-DD) instead of today so retroactive uploads land on
+  // the correct day automatically. Falls back to today when missing or unparseable.
+  const detectedDate = (() => {
+    const ts = parsed?.workout_started_at
+    if (!ts) return null
+    const m = /^(\d{4}-\d{2}-\d{2})/.exec(ts)
+    return m ? m[1] : null
+  })()
+
   const [form, setForm] = useState({
-    checkin_date: today,
+    checkin_date: detectedDate || today,
     total_distance_km: parsed?.total_distance_km ?? '',
     avg_pace_per_km: parsed?.avg_pace_per_km ?? '',
     avg_hr_bpm: parsed?.avg_hr_bpm ?? '',
@@ -216,6 +291,14 @@ function StepReview({ parsed, imagePreview, isManual, onConfirm, onBack }) {
         splits,
         notes: form.notes || null,
         ...(parsed?.tmp_image_path ? { tmp_image_path: parsed.tmp_image_path } : {}),
+        ...(parsed?.tmp_summary_image_path ? { tmp_summary_image_path: parsed.tmp_summary_image_path } : {}),
+        // Forward summary + weather fields so the backend persists them on save.
+        ...['workout_started_at', 'workout_ended_at', 'workout_time_seconds', 'total_elapsed_seconds',
+            'location_name', 'location_lat', 'location_lon', 'elevation_gain_m', 'avg_cadence_spm',
+            'active_calories', 'total_calories', 'perceived_effort',
+            'temperature_c', 'apparent_temperature_c', 'humidity_pct', 'wind_speed_kmh',
+            'precipitation_mm', 'weather_code'
+          ].reduce((acc, k) => parsed?.[k] !== undefined && parsed?.[k] !== null ? { ...acc, [k]: parsed[k] } : acc, {}),
       }
 
       const fd = new FormData()
@@ -278,6 +361,50 @@ function StepReview({ parsed, imagePreview, isManual, onConfirm, onBack }) {
           placeholder="How did the run feel?" rows={2}
           style={{ ...INPUT, fontFamily: "'DM Sans', sans-serif", resize: 'vertical' }} />
       </Field>
+
+      {/* Parsed-from-summary read-only preview (only when a summary screenshot was uploaded) */}
+      {(parsed?.location_name || parsed?.temperature_c !== undefined || parsed?.elevation_gain_m !== undefined) && (
+        <div style={{ marginBottom: 16, padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 10 }}>
+            Conditions & Context (from summary)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, fontFamily: "'DM Mono', monospace", fontSize: 12 }}>
+            {parsed?.location_name && (
+              <div><span style={{ color: 'var(--muted)' }}>Location: </span><span>{parsed.location_name}</span></div>
+            )}
+            {parsed?.temperature_c !== undefined && parsed?.temperature_c !== null && (
+              <div>
+                <span style={{ color: 'var(--muted)' }}>Temp: </span>
+                <span>{parsed.temperature_c}°C</span>
+                {parsed?.apparent_temperature_c !== undefined && parsed?.apparent_temperature_c !== null && (
+                  <span style={{ color: 'var(--muted)' }}> (feels {parsed.apparent_temperature_c}°)</span>
+                )}
+              </div>
+            )}
+            {parsed?.weather_label && (
+              <div><span style={{ color: 'var(--muted)' }}>Sky: </span><span>{parsed.weather_label}</span></div>
+            )}
+            {parsed?.humidity_pct !== undefined && parsed?.humidity_pct !== null && (
+              <div><span style={{ color: 'var(--muted)' }}>Humidity: </span><span>{parsed.humidity_pct}%</span></div>
+            )}
+            {parsed?.elevation_gain_m !== undefined && parsed?.elevation_gain_m !== null && (
+              <div><span style={{ color: 'var(--muted)' }}>Elevation: </span><span>{parsed.elevation_gain_m}m</span></div>
+            )}
+            {parsed?.avg_cadence_spm !== undefined && parsed?.avg_cadence_spm !== null && (
+              <div><span style={{ color: 'var(--muted)' }}>Cadence: </span><span>{parsed.avg_cadence_spm} spm</span></div>
+            )}
+            {parsed?.active_calories !== undefined && parsed?.active_calories !== null && (
+              <div><span style={{ color: 'var(--muted)' }}>Calories: </span><span>{parsed.active_calories} kcal</span></div>
+            )}
+            {parsed?.perceived_effort !== undefined && parsed?.perceived_effort !== null && (
+              <div><span style={{ color: 'var(--muted)' }}>Effort: </span><span>{parsed.perceived_effort}/10</span></div>
+            )}
+            {parsed?.workout_started_at && (
+              <div><span style={{ color: 'var(--muted)' }}>Started: </span><span>{parsed.workout_started_at.replace('T', ' ').slice(0, 16)}</span></div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Splits */}
       {splits.length > 0 && (
@@ -381,6 +508,10 @@ function StepSuccess({ saved, onAnother }) {
           ['Avg Pace', saved.avg_pace_per_km || '—'],
           ['Avg HR', saved.avg_hr_bpm ? `${saved.avg_hr_bpm} bpm` : '—'],
           ['Max HR', saved.max_hr_bpm ? `${saved.max_hr_bpm} bpm` : '—'],
+          ...(saved.apparent_temperature_c != null ? [['Feels Like', `${saved.apparent_temperature_c.toFixed?.(0) ?? saved.apparent_temperature_c}°C`]] : []),
+          ...(saved.elevation_gain_m != null ? [['Elevation', `${saved.elevation_gain_m}m`]] : []),
+          ...(saved.avg_cadence_spm != null ? [['Cadence', `${saved.avg_cadence_spm} spm`]] : []),
+          ...(saved.perceived_effort != null ? [['Effort', `${saved.perceived_effort}/10`]] : []),
         ].map(([label, val]) => (
           <div key={label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '12px 14px' }}>
             <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>

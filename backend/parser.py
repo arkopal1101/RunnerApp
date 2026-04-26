@@ -5,13 +5,6 @@ import sys
 from typing import Optional
 
 try:
-    import pytesseract
-    from PIL import Image
-    TESSERACT_AVAILABLE = True
-except ImportError:
-    TESSERACT_AVAILABLE = False
-
-try:
     import requests as _requests
     REQUESTS_AVAILABLE = True
 except ImportError:
@@ -45,16 +38,21 @@ _PROMPT = (
     "- hr_bpm and power_watts are integers\n"
     "- total_distance_km equals the number of full km rows (integer or float)\n"
     "- avg_pace is the arithmetic mean of the per-km paces, in mm:ss\n"
-    "- avg_hr is the arithmetic mean of per-km HR, rounded to one decimal"
+    "- avg_hr is the arithmetic mean of per-km HR, rounded to one decimal\n"
+    "- KM indices must be sequential 1..N — do not skip rows"
 )
 
 
 def parse_workout_screenshot(image_path: str, openai_api_key: Optional[str] = None) -> dict:
     """
-    Parse workout screenshot from Apple Health.
-    Step 1: pytesseract OCR + regex (3 strategies, handles multi-column Apple Health layout)
-    Step 2: OpenAI vision fallback if OCR yields < 2 splits.
-            Model is controlled by OPENAI_MODEL env var (default: gpt-5-mini).
+    Parse workout screenshot from Apple Health using OpenAI vision.
+
+    OCR was previously attempted as a first stage but proved unreliable on Apple
+    Health's multi-column dark-theme layout (each column read as a separate
+    block, single-character glitches desynced rows). LLM-only is simpler and
+    more accurate; cost is negligible for one screenshot per logged run.
+
+    Model is controlled by OPENAI_MODEL env var (default: gpt-5-mini).
     Returns: { splits, avg_pace, avg_hr, total_distance_km, max_hr, avg_power, confidence }
     """
     result = {
@@ -69,34 +67,11 @@ def parse_workout_screenshot(image_path: str, openai_api_key: Optional[str] = No
         "raw_text": ""
     }
 
-    # Step 1: pytesseract OCR
-    if TESSERACT_AVAILABLE:
-        try:
-            img = Image.open(image_path)
-            raw_text = pytesseract.image_to_string(img)
-            result["raw_text"] = raw_text
-            splits = _extract_splits_regex(raw_text)
-            if len(splits) >= 2:
-                _log(f"OCR succeeded with {len(splits)} splits")
-                result["splits"] = splits
-                result["confidence"] = "ocr"
-                _compute_aggregates(result)
-                return result
-            _log(f"OCR returned {len(splits)} splits (<2) — falling through to LLM")
-        except Exception as e:
-            _log(f"OCR failed: {type(e).__name__}: {e}")
-    else:
-        _log("Tesseract not installed — skipping OCR stage")
-
-    # Step 2: OpenAI vision fallback (default: gpt-5-mini).
-    # GPT-5 models burn tokens on internal reasoning before output; we use
-    # reasoning_effort=minimal + a generous max_completion_tokens so the
-    # visible JSON response actually fits.
     if not openai_api_key:
-        _log("No OPENAI_API_KEY set — LLM fallback skipped, marking parse as failed")
+        _log("No OPENAI_API_KEY set — parser cannot run, returning failed result")
         return result
     if not REQUESTS_AVAILABLE:
-        _log("requests package not installed — LLM fallback unavailable")
+        _log("requests package not installed — parser unavailable")
         return result
 
     try:
@@ -165,60 +140,102 @@ def parse_workout_screenshot(image_path: str, openai_api_key: Optional[str] = No
         _compute_aggregates(result)
         return result
     except Exception as e:
-        _log(f"LLM fallback error: {type(e).__name__}: {e}")
+        _log(f"LLM parse error: {type(e).__name__}: {e}")
         return result
 
 
-def _extract_splits_regex(text: str) -> list:
-    """Extract splits from OCR text — tries three strategies."""
-    splits = []
+_SUMMARY_PROMPT = (
+    "This image is a screenshot of an Apple Fitness 'Workout Details' / Summary view "
+    "for an outdoor run. Extract the visible fields into a single JSON object.\n\n"
+    "Possible visible fields (omit any that aren't visible — do not invent values):\n"
+    "- workout_date: the date shown at the top, ISO format YYYY-MM-DD. If only weekday "
+    "+ month/day shown (e.g. 'Sun, Apr 26'), assume the current year.\n"
+    "- workout_started_at, workout_ended_at: ISO datetimes built from workout_date and "
+    "the time range shown (e.g. '06:42-08:02' → start 06:42, end 08:02). Use 24h time.\n"
+    "- workout_time_seconds: 'Workout Time' in seconds (e.g. '1:18:20' → 4700).\n"
+    "- total_elapsed_seconds: 'Elapsed Time' in seconds. Includes pauses; usually "
+    "slightly larger than workout_time_seconds.\n"
+    "- location_name: the city/place shown next to the workout name (e.g. 'Gurugram').\n"
+    "- distance_km: 'Distance' in kilometers as a float.\n"
+    "- active_calories, total_calories: integers (calories).\n"
+    "- elevation_gain_m: 'Elevation Gain' in meters (integer or float).\n"
+    "- avg_power_watts: 'Avg. Power' in watts.\n"
+    "- avg_cadence_spm: 'Avg. Cadence' in steps per minute.\n"
+    "- avg_pace: 'Avg. Pace' in mm:ss format (e.g. '11'12\"/km' → '11:12').\n"
+    "- avg_hr_bpm: 'Avg. Heart Rate' in bpm.\n"
+    "- perceived_effort: integer 1-10 from the 'Effort' badge if shown (e.g. '5 Moderate' → 5).\n\n"
+    "Return JSON only (no markdown, no commentary). All keys are optional — omit, "
+    "rather than guess, anything not clearly visible."
+)
 
-    # Strategy 1: all data on one line
-    # e.g. "1  09:49  9'49''/km  144BPM  159W"
-    pattern = r'(\d+)\s+(\d{1,2}:\d{2})\s+(\d{1,2}[\':]?\d{2}[\'\"]*(?:/km|\'\'\/km)?)\s+(\d{3})\s*[Bb][Pp][Mm]\s+(\d+)\s*[Ww]'
-    for m in re.findall(pattern, text):
-        splits.append({
-            "km": int(m[0]),
-            "time": m[1],
-            "pace_per_km": m[2].replace("''", '"').replace("'", ":").rstrip("/km").rstrip(":").rstrip('"'),
-            "hr_bpm": int(m[3]),
-            "power_watts": int(m[4])
-        })
-    if splits:
-        return splits
 
-    # Strategy 2: mm:ss/km on one line
-    pattern2 = r'(\d+)\s+(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})/km\s+(\d{3})\s*bpm\s+(\d+)\s*[Ww]'
-    for m in re.findall(pattern2, text, re.IGNORECASE):
-        splits.append({
-            "km": int(m[0]),
-            "time": m[1],
-            "pace_per_km": m[2],
-            "hr_bpm": int(m[3]),
-            "power_watts": int(m[4])
-        })
-    if splits:
-        return splits
+def parse_workout_summary_screenshot(image_path: str, openai_api_key: Optional[str] = None) -> dict:
+    """
+    Parse the Apple Fitness Workout Summary screen (the screen with totals,
+    location, elevation, calories, cadence, effort). Returns a dict with any
+    subset of the schema in _SUMMARY_PROMPT — all fields are optional.
 
-    # Strategy 3: Apple Health multi-column layout
-    # OCR reads each column as a separate block, not row-by-row:
-    #   "1 08:38\n2 10:08\n..." then "8'38\"/km\n10'08\"/km\n..." then "142BPM\n..." then "174w\n..."
-    splits_times = re.findall(r'^(\d+)\s+(\d{1,2}:\d{2})\s*$', text, re.MULTILINE)
-    paces = re.findall(r"(\d{1,2}[':]\d{2})['\"\s./]*/km", text, re.IGNORECASE)
-    hrs = re.findall(r'(\d{3})\s*[Bb][Pp][Mm]', text)
-    powers = re.findall(r'(\d{1,4})\s*[Ww](?:[^a-zA-Z]|$)', text)
-    n = min(len(splits_times), len(paces), len(hrs), len(powers))
-    for i in range(n):
-        km, time = splits_times[i]
-        splits.append({
-            "km": int(km),
-            "time": time,
-            "pace_per_km": paces[i].replace("'", ":").rstrip(":"),
-            "hr_bpm": int(hrs[i]),
-            "power_watts": int(powers[i])
-        })
+    Returns {} on any failure so callers can merge it into the existing parsed
+    payload without having to special-case errors.
+    """
+    if not openai_api_key:
+        _log("No OPENAI_API_KEY — summary parser skipped")
+        return {}
+    if not REQUESTS_AVAILABLE:
+        _log("requests not installed — summary parser unavailable")
+        return {}
 
-    return splits
+    try:
+        import json
+        with open(image_path, "rb") as f:
+            image_bytes = f.read()
+        image_data = base64.b64encode(image_bytes).decode("utf-8")
+        ext = os.path.splitext(image_path)[1].lower()
+        mime = "image/jpeg" if ext in (".jpg", ".jpeg") else "image/png"
+
+        model = os.getenv("OPENAI_MODEL", "gpt-5-mini")
+        _log(f"Calling {model} for workout summary…")
+        payload = {
+            "model": model,
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{image_data}"}},
+                    {"type": "text", "text": _SUMMARY_PROMPT},
+                ],
+            }],
+            "reasoning_effort": "minimal",
+            "max_completion_tokens": 800,
+            "response_format": {"type": "json_object"},
+        }
+        resp = _requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {openai_api_key}", "Content-Type": "application/json"},
+            json=payload,
+            timeout=60,
+        )
+        if not resp.ok:
+            _log(f"Summary parse HTTP {resp.status_code}: {resp.text[:300]}")
+            return {}
+        body = resp.json()
+        text = body["choices"][0]["message"]["content"].strip()
+        if not text:
+            _log("Summary parse: empty response")
+            return {}
+        if text.startswith("```"):
+            text = re.sub(r"```(?:json)?\n?", "", text).strip("`").strip()
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError as e:
+            _log(f"Summary parse JSON error: {e}. Raw: {text[:300]}")
+            return {}
+        # Drop any None / empty-string values so callers can merge cleanly.
+        cleaned = {k: v for k, v in parsed.items() if v not in (None, "")}
+        _log(f"Summary parse OK — fields: {sorted(cleaned.keys())}")
+        return cleaned
+    except Exception as e:
+        _log(f"Summary parse error: {type(e).__name__}: {e}")
+        return {}
 
 
 def _pace_to_seconds(pace: str) -> Optional[int]:

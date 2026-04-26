@@ -28,6 +28,27 @@ def get_db():
 _MIGRATIONS = [
     ("users", "baseline_pace_seconds", "INTEGER"),
     ("users", "baseline_calibrated_at", "DATETIME"),
+    # Workout Summary screenshot fields
+    ("daily_checkins", "summary_image_path", "VARCHAR"),
+    ("daily_checkins", "workout_started_at", "VARCHAR"),
+    ("daily_checkins", "workout_ended_at", "VARCHAR"),
+    ("daily_checkins", "workout_time_seconds", "INTEGER"),
+    ("daily_checkins", "total_elapsed_seconds", "INTEGER"),
+    ("daily_checkins", "location_name", "VARCHAR"),
+    ("daily_checkins", "location_lat", "FLOAT"),
+    ("daily_checkins", "location_lon", "FLOAT"),
+    ("daily_checkins", "elevation_gain_m", "FLOAT"),
+    ("daily_checkins", "avg_cadence_spm", "INTEGER"),
+    ("daily_checkins", "active_calories", "INTEGER"),
+    ("daily_checkins", "total_calories", "INTEGER"),
+    ("daily_checkins", "perceived_effort", "INTEGER"),
+    # Weather fields (Open-Meteo)
+    ("daily_checkins", "temperature_c", "FLOAT"),
+    ("daily_checkins", "apparent_temperature_c", "FLOAT"),
+    ("daily_checkins", "humidity_pct", "INTEGER"),
+    ("daily_checkins", "wind_speed_kmh", "FLOAT"),
+    ("daily_checkins", "precipitation_mm", "FLOAT"),
+    ("daily_checkins", "weather_code", "INTEGER"),
 ]
 
 
